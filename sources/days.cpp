@@ -1,6 +1,11 @@
-#include <fstream>
 #include "config.h"
 #include "days.h"
+#include "common.h"
+
+#include <vector>
+#include <fstream>
+#include <algorithm>
+#include <iostream>
 
 int day01(string inputfile, bool partone) {
     // Parse input
@@ -30,6 +35,34 @@ int day01(string inputfile, bool partone) {
             if (i == freqlist.size()) { i=0; }
         }
         result = freq;
+    }
+    return result;
+}
+
+int day02(string inputfile, bool partone) {
+    int result = 0;
+    // Parse input
+    vector<string> keys = get_lines(inputfile);
+    if (partone) {
+        // Part One
+        vector< pair<char, size_t> > t;
+        size_t keys_two = 0;
+        size_t keys_three = 0;
+        for (string& key : keys) {
+            t = string_tally(key);
+            if(vector_pair_query(t, '*', (size_t)2, false, true)) keys_two++;
+            if(vector_pair_query(t, '*', (size_t)3, false, true)) keys_three++;
+        }
+        result = keys_two * keys_three;
+    } else {
+        // Part Two
+        // sort the keys
+        sort(keys.begin(), keys.end());
+        for (size_t i=0; i<keys.size()-1; i++) {
+            if (string_diff_chars(keys[i], keys[i+1])==1) {
+                cout << string_union(keys[i], keys[i+1]);
+            }
+        }
     }
     return result;
 }
