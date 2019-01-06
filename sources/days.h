@@ -13,4 +13,6 @@ int day01(string inputfile, bool partone = true);
 
 int day02(string inputfile, bool partone = true);
 
+size_t day03(string inputfile, bool partone = true);
+
 #endif //AOC18_DAYS_H

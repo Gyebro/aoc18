@@ -67,3 +67,9 @@ string string_union(const string& u, const string& v) {
         return uni;
     }
 }
+
+vector<string> split(const string &s, char delim) {
+    vector<string> elems;
+    split(s, delim, back_inserter(elems));
+    return elems;
+}

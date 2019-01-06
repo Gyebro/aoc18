@@ -17,6 +17,10 @@ int main() {
     day02("day02.txt", false);
 #endif
 
+#ifdef DAY03
+    cout << day03("day03.txt") << endl;
+    cout << day03("day03.txt", false) << endl;
+#endif
 
     return 0;
 }

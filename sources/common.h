@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <string>
+#include <sstream>
 
 using namespace std;
 
@@ -19,6 +20,8 @@ vector<string> get_lines(string filename);
 size_t string_diff_chars(const string& u, const string& v);
 
 string string_union(const string& u, const string& v);
+
+vector<string> split(const string &s, char delim);
 
 //// Templates ////
 
@@ -37,6 +40,14 @@ bool vector_pair_query(vector< pair<U,V> >& pairs, const U& u, const V& v, bool 
         }
     }
     return match;
+}
+
+template<class T>
+void split(const std::string &s, char delim, T result) {
+    stringstream ss(s); string item;
+    while (getline(ss, item, delim)) {
+        *(result++) = item;
+    }
 }
 
 #endif //AOC18_COMMON_H
