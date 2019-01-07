@@ -156,3 +156,240 @@ size_t day03(string inputfile, bool partone) {
     }
     return result;
 }
+
+/// Days 04 to 12
+
+class day13_cart_and_tracks {
+private:
+    enum class track {
+        empty,
+        straight,
+        turn_slash,
+        turn_backslash,
+        intersection
+    };
+    enum class direction {
+        left,
+        down,
+        right,
+        up
+    };
+    class cart {
+    public:
+        direction d;
+        size_t x;
+        size_t y;
+        size_t priority;
+    private:
+        static const size_t w = 150; // TODO: Tidy-up!
+        size_t move; // Move order at intersections: left, straight, right, ...
+    public:
+        cart(size_t pos_x, size_t pos_y, direction dir) : x(pos_x), y(pos_y), d(dir), move(0) {
+            priority = y*w+x;
+        };
+        void turn(bool left) {
+            switch (d) {
+                case direction::up:
+                    d = left ? direction::left : direction::right;
+                    break;
+                case direction::left:
+                    d = left ? direction::down : direction::up;
+                    break;
+                case direction::down:
+                    d = left ? direction::right : direction::left;
+                    break;
+                case direction::right:
+                    d = left ? direction:: up : direction::down;
+                    break;
+            }
+        }
+        void turn_with_track(bool slash) {
+            /* Turn map:   /   \
+            //  Left       /<  \<
+            //  Right     >/  >\
+            //  Up         /   \
+            //             ^   ^
+            //  Down       v   v
+            //             /   \    */
+            switch (d) {
+                case direction::left:
+                case direction::right:
+                    turn(slash);
+                    break;
+                case direction::up:
+                case direction::down:
+                    turn(!slash);
+                    break;
+            }
+        }
+        void auto_turn() {
+            switch (move % 3) {
+                case 0:
+                    turn(true); // Left
+                    break;
+                case 1:
+                    // Straight
+                    break;
+                case 2:
+                    turn(false); // Right
+                    break;
+            }
+            move++;
+        }
+    };
+    size_t w, h;
+    vector<track> map; // row-continuous
+    vector<cart> carts;
+    bool move_cart(size_t c, bool remove_crashed = false) {
+        // Move carts[c]
+        size_t x = carts[c].x;
+        size_t y = carts[c].y;
+        direction d = carts[c].d;
+        switch (d) {
+            case direction::left:
+                x--;
+                break;
+            case direction::right:
+                x++;
+                break;
+            case direction::up:
+                y--;
+                break;
+            case direction::down:
+                y++;
+                break;
+        }
+        // Update cart's location
+        carts[c].x = x;
+        carts[c].y = y;
+        // Recalculate priority
+        carts[c].priority = y*w+x;
+        // Check track and turn cart if needed
+        track t = map[y*w+x];
+        switch (t) {
+            case track::straight:
+                // No need to turn cart
+                break;
+            case track::intersection:
+                // Turn cart according to it's movement pattern
+                carts[c].auto_turn();
+                break;
+            case track::turn_slash:
+                // Turn cart based on track
+                carts[c].turn_with_track(true);
+                break;
+            case track::turn_backslash:
+                // Turn cart based on track
+                carts[c].turn_with_track(false);
+                break;
+            case track::empty:
+                cout << "Error: cart derailed!\n";
+                break;
+        }
+        bool ok = true;
+        // Check collisions with other carts
+        for (size_t i=0; i<carts.size(); i++) {
+            if (i != c) {
+                size_t x_other = carts[i].x;
+                size_t y_other = carts[i].y;
+                if (x == x_other && y == y_other) {
+                    if (!remove_crashed) {
+                        // Not removing crashed carts
+                        ok = false;
+                        cout << "Cart " << c << " collides with cart " << i << " at (" << x << "," << y << ")\n";
+                    } else {
+                        // Removing crashed carts and ok = true if more than 1 cart left
+                        vector<cart> remaining;
+                        cout << "Cart " << c << " collides with cart " << i << " Elves will quickly remove them\n";
+                        for (size_t j=0; j<carts.size(); j++) {
+                            if (j != i && j != c) remaining.push_back(carts[j]);
+                        }
+                        carts = remaining;
+                        if (carts.size() == 1) {
+                            cout << "Last cart is at (" << carts[0].x << "," << carts[0].y << "), finishing tick...\n";
+                            ok = false;
+                        }
+                    }
+                }
+            }
+        }
+        return ok;
+    }
+public:
+    day13_cart_and_tracks(vector<string> lines) {
+        h = lines.size();
+        w = lines[0].size(); // Not checking invalid input map
+        map.resize(h*w);
+        char c;
+        for (size_t y=0; y<h; y++) { // For every line
+            for (size_t x=0; x<w; x++) {
+                c = lines[y][x];
+                track t;
+                switch (c) {
+                    case ' ':
+                        t = track::empty;
+                        break;
+                    case '|':
+                    case '-':
+                        t = track::straight;
+                        break;
+                    case '\\':
+                        t = track::turn_backslash;
+                        break;
+                    case '/':
+                        t = track::turn_slash;
+                        break;
+                    case '+':
+                        t = track::intersection;
+                        break;
+                    case 'v':
+                        t = track::straight;
+                        carts.push_back(cart(x, y, direction::down));
+                        break;
+                    case '^':
+                        t = track::straight;
+                        carts.push_back(cart(x, y, direction::up));
+                        break;
+                    case '<':
+                        t = track::straight;
+                        carts.push_back(cart(x, y, direction::left));
+                        break;
+                    case '>':
+                        t = track::straight;
+                        carts.push_back(cart(x, y, direction::right));
+                        break;
+                    default:
+                        cout << "Error: invalid character in map!";
+                        break;
+                }
+                map[y*w+x]=t;
+            }
+        }
+        cout << "Found " << carts.size() << " carts on a map of " << h << "x" << w << endl;
+    }
+    bool tick(bool remove_crashed = false) {
+        // Sort carts to determine their move order
+        sort(carts.begin(), carts.end(), [](auto &l, auto &r) { return l.priority < r.priority; });
+        // Move carts one by one and check for inter-tick collisions
+        bool ok = true;
+        for (size_t c = 0; c<carts.size(); c++) {
+            ok &= move_cart(c, remove_crashed);
+        }
+        if (remove_crashed && !ok) {
+            cout << "Last cart is at (" << carts[0].x << "," << carts[0].y << "), at the end of tick.\n";
+        }
+        return ok;
+    }
+};
+
+void day13(string inputfile, bool partone) {
+    // Create the map
+    day13_cart_and_tracks cat(get_lines(inputfile));
+    if (partone) {
+        // Part one
+        while (cat.tick());
+    } else {
+        // Part two
+        while (cat.tick(true));
+    }
+}
