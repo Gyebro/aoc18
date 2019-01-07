@@ -9,6 +9,7 @@
 //#define DAY02
 //#define DAY03
 // ...
-#define DAY13
+//#define DAY13
+#define DAY14
 
 #endif //AOC18_CONFIG_H

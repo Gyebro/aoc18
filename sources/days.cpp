@@ -393,3 +393,80 @@ void day13(string inputfile, bool partone) {
         while (cat.tick(true));
     }
 }
+
+void day14_combine(vector<uint8_t>& recipes, size_t& e1, size_t& e2) {
+    uint8_t r1 = recipes[e1];
+    uint8_t r2 = recipes[e2];
+    uint8_t sum = r1+r2;
+    if (sum < 10) {
+        recipes.push_back(sum);
+    } else {
+        uint8_t n1 = sum / 10;
+        recipes.push_back(n1);
+        recipes.push_back(sum - n1*10);
+    }
+    // Move elves
+    size_t l = recipes.size();
+    e1 = (e1+r1+1) % l;
+    e2 = (e2+r2+1) % l;
+}
+
+bool day14_check(const vector<uint8_t>& recipes, const vector<uint8_t>& target, size_t at) {
+    // Check for target sequence at the given location
+    bool ok = true;
+    if (recipes.size() < at+target.size()) return false;
+    for (size_t i=at; i<at+target.size(); i++) {
+        ok &= recipes[i] == target[i-at];
+    }
+    return ok;
+}
+
+void day14(string inputfile, bool partone) {
+    vector<uint8_t> recipes;
+    recipes.push_back(3);
+    recipes.push_back(7);
+    string number = get_lines(inputfile)[0];
+    size_t target_number = stoul(number);
+    size_t sample = 10;
+    // Elves' location
+    size_t e1 = 0;
+    size_t e2 = 1;
+    if (partone) {
+        while (recipes.size() < target_number+sample) {
+            day14_combine(recipes, e1, e2);
+        }
+        for (size_t i=target_number; i<target_number+sample; i++) {
+            cout << (int)recipes[i];
+        }
+        cout << endl;
+    } else {
+        // Part two
+        vector<uint8_t> target;
+        for (char c : number) {
+            target.push_back(atol(&c));
+        }
+        // Generate some recipes until we have enough buffer
+        while (recipes.size() < 2+target.size()) {
+            day14_combine(recipes, e1, e2);
+        }
+        bool found = false;
+        size_t rlen = recipes.size();
+        size_t i = 0;
+        while (!found) {
+            // Combine recipes
+            day14_combine(recipes, e1, e2);
+            if (recipes.size() - rlen == 1) {
+                found = day14_check(recipes, target, i); i++; // Single recipe added
+            } else {
+                // Two recipes added, check sequence at two locations
+                found = day14_check(recipes, target, i); i++;
+                if (!found) {
+                    found = day14_check(recipes, target, i); i++;
+                }
+            }
+            rlen = recipes.size();
+        }
+        cout << "Target sequence found at " << i << " recipes to the left: " << i-1 << endl;
+    }
+    return;
+}
