@@ -35,8 +35,12 @@ int main() {
 #endif
 
 #ifdef DAY15
+    //day15("day15_test1.txt"); // Passed 36334
+    //day15("day15_test2.txt"); // Passed 39514
+    //day15("day15_test3.txt"); // Passed 27755
+    //day15("day15_test4.txt"); // Passed 28944
+    //day15("day15_test5.txt"); // Passed 18740
     day15("day15.txt");
-    //day15("day15.txt", false);
 #endif
 
     return 0;

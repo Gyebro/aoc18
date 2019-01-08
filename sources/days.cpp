@@ -513,12 +513,13 @@ private:
         no_targets_left,
         not_moved_enemy_in_range,
         not_moved_enemy_inaccessibly,
+        moved_enemy_in_range,
         moved
     };
     bool graph_bfs(tile* target_ptr, const size_t max_steps, vector<tile*>& front, vector<vector<tile*>>& paths) {
         // For every element in the frontline nodes, enumerate compatible children
         if (front.size() == 0) return false;
-        cout << "BFS: frontline nodes: " << front.size() << endl;
+        //cout << "BFS: frontline nodes: " << front.size() << endl;
         vector<tile*> new_front;
         vector<vector<tile*>> new_paths;
         bool found = false;
@@ -559,61 +560,120 @@ private:
         return graph_bfs(target_ptr, max_steps, front, paths);
     }
     move_result move(unit& u) {
-        bool target_goblins = !u.goblin; // Goblins target Elves and vice versa
-        vector<unit> targets;
-        for (unit& t : units) {
-            if (t.goblin == target_goblins && u.tile_ptr != t.tile_ptr) targets.push_back(t);
+        vector<tile*> targets;
+        for (const unit& t : units) {
+            if (t.goblin == !u.goblin && t.alive) targets.push_back(t.tile_ptr);
         }
         if (targets.empty()) {
             return move_result::no_targets_left;
         } else {
-            vector<size_t> distances_to_targets;
-            vector<tile*> shortest_path;
-            vector<tile*> path;
             size_t lowest_distance = W*H;
             size_t dist;
-            for (unit& t : targets) {
-                vector<size_t> visited;
-                bool reachable = false;// TODO graph_bfs(u.tile_ptr, t.tile_ptr, lowest_distance, path);
+            bool possible_to_move = false;
+            vector<vector<tile*>> paths;
+            vector<tile*> front;
+            vector<tile*> shortest_path;
+            for (tile* t : targets) {
+                front.clear();
+                paths.clear();
+                front.push_back(u.tile_ptr);
+                paths.push_back(front);
+                bool reachable = graph_bfs(t, lowest_distance, front, paths);
                 if (reachable) {
-                    dist = path.size();
+                    dist = paths[0].size();
+                    possible_to_move = true;
                     if (dist < lowest_distance) {
-                        shortest_path = path;
                         lowest_distance = dist;
+                        shortest_path = paths[0];
                     }
                 }
             }
-            // If theres a unit in range, return not_moved_can_attack
-            // Do BFS towards all enemy, find who is reachable
-            // Move towards the closest (if exists)
-
+            if (possible_to_move) {
+                if (lowest_distance == 2) {
+                    //cout << "Not moved, as target at " << shortest_path.back()->priority << " is in range\n";
+                    return move_result::not_moved_enemy_in_range;
+                } else {
+                    // Move unit
+                    u.tile_ptr->occupied = false;
+                    u.tile_ptr = shortest_path[1]; // 0-th element is the start tile
+                    u.tile_ptr->occupied = true;
+                    if (lowest_distance == 3) {
+                        return move_result::moved_enemy_in_range;
+                    } else {
+                        return move_result::moved;
+                    }
+                }
+            } else {
+                // There is a target, but not reachable
+                return move_result::not_moved_enemy_inaccessibly;
+            }
         }
-        return move_result::moved;
     }
+    class unitinfo { // Helper struct for selecting enemy
+    public:
+        int hp;
+        size_t id;
+        size_t priority;
+        unitinfo(size_t id, int hp, size_t priority) : hp(hp), id(id), priority(priority) {};
+    };
     void attack(unit& u) {
-        // TODO: Implement
+        vector<tile*> occupied_tiles;
         // Find closest unit with least hp or with highest priority in range (4 neighbouring tiles)
-        // Attack it, -3 hp
-        // Remove unit if it dies, clean the tile's pointer too!
-        return;
+        for (tile* n : u.tile_ptr->neighbors) {
+            if (n->occupied) occupied_tiles.push_back(n);
+        }
+        vector<unitinfo> enemies;
+        for (size_t i=0; i<units.size(); i++) {
+            for (tile* t : occupied_tiles) {
+                // TODO: Find bug, why are there alive units at this point, someone else steps on them?
+                if (units[i].tile_ptr == t && units[i].goblin != u.goblin && units[i].alive) {
+                    // units[i] is an enemy in range
+                    enemies.emplace_back(unitinfo(i, units[i].hp, t->priority));
+                }
+            }
+        }
+        if (enemies.empty()) {
+            cout << "Error: unit can't attack, but an enemy should be in it's range!\n";
+        } else {
+            // First sort based on priority
+            sort(enemies.begin(), enemies.end(), [](auto &l, auto &r) { return l.priority < r.priority; });
+            // Then sort based on HP, so that in case of tie' priority will be the second sort
+            sort(enemies.begin(), enemies.end(), [](auto &l, auto &r) { return l.hp < r.hp; });
+            size_t target_id = enemies[0].id;
+            // Attack
+            if (units[target_id].hp <= 0) {
+                cout << "BUG: Error here, hitting an already dead unit!\n";
+            }
+            units[target_id].hp -= u.attack;
+            if (units[target_id].hp <= 0) {
+                //cout << "Unit " << target_id << " died!\n";
+                units[target_id].alive = false;
+                units[target_id].tile_ptr->occupied = false;
+            }
+        }
     }
     bool round() {
         // Sort units based on their tile's priority
         sort(units.begin(), units.end(), [](auto &l, auto &r) { return l.tile_ptr->priority < r.tile_ptr->priority; });
         // For every unit
         for (unit& u : units) {
-            // Move with units
-            switch (move(u)) {
-                case move_result::no_targets_left:
-                    // End battle
-                    return false;
-                case move_result::moved:
-                case move_result::not_moved_enemy_in_range:
-                    attack(u);
-                    break;
-                case move_result::not_moved_enemy_inaccessibly:
-                    // Do nothing
-                    break;
+            if (u.alive) {
+                // Move with units
+                switch (move(u)) {
+                    case move_result::no_targets_left:
+                        // End battle
+                        return false;
+                    case move_result::moved:
+                        // Moved but cant attack yet
+                        break;
+                    case move_result::moved_enemy_in_range:
+                    case move_result::not_moved_enemy_in_range:
+                        attack(u);
+                        break;
+                    case move_result::not_moved_enemy_inaccessibly:
+                        // Do nothing
+                        break;
+                }
             }
         }
         return true;
@@ -672,29 +732,6 @@ public:
         build_edges();
         cout << "Built graph consisting " << nodes << " nodes\n";
         cout << "Units on battlefield: " << units.size() << endl;
-        // Unit summary
-        for (unit& u : units) {
-            cout << (u.goblin ? "Goblin" : "Elf");
-            cout << " at " << u.tile_ptr->priority << " @ " << u.tile_ptr->x << "," << u.tile_ptr->y;
-            cout << endl;
-        }
-        // Test BFS
-        tile* start =  &(graph[6*W+24]);
-        //tile* target = &(graph[17*W+23]);
-        //tile* target = &(graph[8*W+17]);
-        tile* target = &(graph[13*W+3]);
-        vector<tile*> front;
-        vector<vector<tile*>> paths;
-        front.push_back(start);
-        paths.push_back(front);
-        bool reach = graph_bfs(target, W*H, front, paths);
-        if (reach) { cout << "Reachable in " << paths[0].size() << " steps\n";
-            for (tile* t : paths[0]) {
-                cout << t->y << "," << t->x << endl;
-            }
-        } else {
-            cout << "Not reachable" << endl;
-        }
     }
     size_t start() {
         size_t rounds = 0;
@@ -704,6 +741,8 @@ public:
         for (unit& u : units) {
             if (u.alive) hp_sum += u.hp;
         }
+        //cout << rounds << endl;
+        //cout << hp_sum << endl;
         return rounds*hp_sum;
     }
 };
@@ -713,6 +752,7 @@ public:
 void day15(string inputfile, bool partone) {
     vector<string> lines = get_lines(inputfile);
     day15_battle battle(lines);
-    //cout << "Outcome: " << battle.start() << endl;
+    size_t outcome = battle.start();
+    cout << "Outcome = " << outcome << endl;
     return;
 }
