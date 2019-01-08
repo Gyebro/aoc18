@@ -791,3 +791,222 @@ void day15(string inputfile, bool partone) {
     }
     return;
 }
+
+class day16_instr {
+public:
+    uint8_t opcode;
+    int a, b, c;
+};
+
+enum class day16_op {
+    addr,
+    addi,
+    mulr,
+    muli,
+    banr,
+    bani,
+    borr,
+    bori,
+    setr,
+    seti,
+    gtir,
+    gtri,
+    gtrr,
+    eqir,
+    eqri,
+    eqrr
+};
+
+const day16_op day16_ops[] = {day16_op::addr, day16_op::addi, day16_op::mulr, day16_op::muli,
+                              day16_op::banr, day16_op::bani, day16_op::borr, day16_op::bori,
+                              day16_op::setr, day16_op::seti, day16_op::gtir, day16_op::gtri,
+                              day16_op::gtrr, day16_op::eqir, day16_op::eqri, day16_op::eqrr};
+
+const string day16_op_names[] = {"addr", "addi", "mulr", "muli",
+                                 "banr", "bani", "borr", "bori",
+                                 "setr", "seti", "gtir", "gtri",
+                                 "gtrr", "eqir", "eqri", "eqrr"};
+
+// Apply instruction 'i' as operation 'o' on registers 'r'
+vector<int> day16_apply(day16_op o, day16_instr i, const vector<int>& r) {
+    vector<int> ro = r;
+    switch (o) {
+        case day16_op::addr:
+            ro[i.c] = r[i.a]+r[i.b];
+            break;
+        case day16_op::addi:
+            ro[i.c] = r[i.a]+i.b;
+            break;
+        case day16_op::mulr:
+            ro[i.c] = r[i.a]*r[i.b];
+            break;
+        case day16_op::muli:
+            ro[i.c] = r[i.a]*i.b;
+            break;
+        case day16_op::banr:
+            ro[i.c] = r[i.a] & r[i.b];
+            break;
+        case day16_op::bani:
+            ro[i.c] = r[i.a] & i.b;
+            break;
+        case day16_op::borr:
+            ro[i.c] = r[i.a] | r[i.b];
+            break;
+        case day16_op::bori:
+            ro[i.c] = r[i.a] | i.b;
+            break;
+        case day16_op::setr:
+            ro[i.c] = r[i.a];
+            break;
+        case day16_op::seti:
+            ro[i.c] = i.a;
+            break;
+        case day16_op::gtir:
+            ro[i.c] = (i.a > r[i.b]);
+            break;
+        case day16_op::gtri:
+            ro[i.c] = (r[i.a] > i.b);
+            break;
+        case day16_op::gtrr:
+            ro[i.c] = (r[i.a] > r[i.b]);
+            break;
+        case day16_op::eqir:
+            ro[i.c] = (i.a == r[i.b]);
+            break;
+        case day16_op::eqri:
+            ro[i.c] = (r[i.a] == i.b);
+            break;
+        case day16_op::eqrr:
+            ro[i.c] = (r[i.a] == r[i.b]);
+            break;
+    }
+    return ro;
+}
+
+class day16_sample {
+private:
+    vector<int> before;
+    vector<int> after;
+    day16_instr instr;
+public:
+    day16_sample(const string& l1, const string& l2, const string& l3) {
+        vector<string> before_str = split(l1.substr(9,10),',');
+        vector<string> instr_str  = split(l2, ' ');
+        vector<string> after_str  = split(l3.substr(9,10),',');
+        for (string& s : before_str) { before.push_back(stoi(s)); }
+        for (string& s : after_str)  { after.push_back(stoi(s)); }
+        instr.opcode = stoul(instr_str[0]);
+        instr.a = stoi(instr_str[1]);
+        instr.b = stoi(instr_str[2]);
+        instr.c = stoi(instr_str[3]);
+    }
+    size_t test() {
+        size_t matches = 0;
+        bool match;
+        vector<int> result;
+        for (const auto op : day16_ops) {
+            result = day16_apply(op, instr, before);
+            match = true;
+            for (size_t i=0; i<4; i++) {
+                if (result[i] != after[i]) {
+                    match = false;
+                }
+            }
+            if (match) matches++;
+        }
+        return matches;
+    }
+    void test_with_dictionary(vector<pair<uint8_t, day16_op>>& dict) {
+        // Check if current opcode already recognized
+        for (auto& p : dict) {
+            if (p.first == instr.opcode) return;
+        }
+        size_t matches = 0;
+        bool match;
+        vector<int> result;
+        day16_op last_match_op;
+        uint8_t last_match_opcode;
+        for (const auto op : day16_ops) {
+            result = day16_apply(op, instr, before);
+            match = true;
+            for (size_t i=0; i<4; i++) {
+                if (result[i] != after[i]) {
+                    match = false;
+                }
+            }
+            if (match) {
+                // Check if this match belongs to an already identified opcode
+                bool already_found = false;
+                for (auto& p : dict) {
+                    if (p.second == op) already_found = true;
+                }
+                if (!already_found) {
+                    matches++;
+                    last_match_op = op;
+                    last_match_opcode = instr.opcode;
+                }
+            }
+        }
+        if (matches == 1) {
+            cout << "Opcode " << (int)last_match_opcode << " is identified as " << day16_op_names[(int)last_match_op] << "!\n";
+            dict.emplace_back( pair<uint8_t, day16_op>({last_match_opcode, last_match_op}) );
+        }
+    }
+};
+
+void day16(string inputfile, bool partone) {
+    vector<string> lines = get_lines(inputfile);
+    vector<day16_sample> samples;
+    size_t split_line;
+    for (size_t i=0; i<lines.size(); i+=4) {
+        if (lines[i].substr(0,6) == "Before") {
+            samples.emplace_back(day16_sample(lines[i],lines[i+1],lines[i+2]));
+        } else {
+            split_line = i;
+            break;
+        }
+    }
+    cout << "Found " << samples.size() << " samples\n";
+    cout << "First part of input ends at line " << split_line << endl;
+    if (partone) {
+        size_t three_or_more = 0;
+        for (day16_sample& s : samples) {
+            if (s.test() >= 3) three_or_more++;
+        }
+        cout << "Samples behaving like 3 or more opcodes: " << three_or_more << endl;
+    } else {
+        vector< pair<uint8_t, day16_op> > opcode_dictionary;
+        while(opcode_dictionary.size() < 16) {
+            for (day16_sample& s : samples) {
+                s.test_with_dictionary(opcode_dictionary);
+            }
+        }
+        cout << "All opcodes identified, parsing program...\n";
+        // Parse lines
+        day16_instr i;
+        vector<day16_instr> program;
+        for (size_t j=split_line; j<lines.size(); j++) {
+            vector<string> p = split(lines[j], ' ');
+            if (p.size()==4) {
+                i.opcode = stoul(p[0]);
+                i.a = stoul(p[1]);
+                i.b = stoul(p[2]);
+                i.c = stoul(p[3]);
+                program.push_back(i);
+            }
+        }
+        cout << "Found " << program.size() << " instructions\n";
+        // Sort dictionary based on opcode
+        sort(opcode_dictionary.begin(), opcode_dictionary.end(),
+             [] (const auto& l, const auto& r) { return l.first < r.first; });
+        // Registers
+        vector<int> regs(4);
+        fill(regs.begin(), regs.end(), 0);
+        // Run program
+        cout << "Running program...\n";
+        for(const day16_instr& i : program) {
+            regs = day16_apply(opcode_dictionary[i.opcode].second, i, regs);
+        }
+        cout << "Register 0 is '" << regs[0] << "'\n";
+    }
+}
