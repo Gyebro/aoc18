@@ -652,7 +652,7 @@ private:
             }
         }
     }
-    bool round() {
+    bool round(bool stop_if_an_elf_dies = false) {
         // Sort units based on their tile's priority
         sort(units.begin(), units.end(), [](auto &l, auto &r) { return l.tile_ptr->priority < r.tile_ptr->priority; });
         // For every unit
@@ -674,6 +674,11 @@ private:
                         // Do nothing
                         break;
                 }
+            }
+        }
+        if (stop_if_an_elf_dies) {
+            for (unit& u : units) {
+                if (!u.goblin && !u.alive) return false;
             }
         }
         return true;
@@ -730,8 +735,8 @@ public:
             }
         }
         build_edges();
-        cout << "Built graph consisting " << nodes << " nodes\n";
-        cout << "Units on battlefield: " << units.size() << endl;
+        //cout << "Built graph consisting " << nodes << " nodes\n";
+        //cout << "Units on battlefield: " << units.size() << endl;
     }
     size_t start() {
         size_t rounds = 0;
@@ -745,14 +750,44 @@ public:
         //cout << hp_sum << endl;
         return rounds*hp_sum;
     }
+    bool start(int elves_attack, size_t& outcome) {
+        size_t rounds = 0;
+        // Set attack power
+        for (unit& u : units) {
+            if (!u.goblin) u.attack = elves_attack;
+        }
+        while (round(true)) rounds++; // not counting the last round when the battle ends
+        // Calculate the sum of HPs of alive units
+        size_t hp_sum = 0;
+        bool success = true;
+        for (unit& u : units) {
+            if (u.alive) hp_sum += u.hp;
+            if (!u.goblin && !u.alive) success = false;
+        }
+        outcome = rounds*hp_sum;
+        return success;
+    }
 };
 
 
 
 void day15(string inputfile, bool partone) {
     vector<string> lines = get_lines(inputfile);
-    day15_battle battle(lines);
-    size_t outcome = battle.start();
-    cout << "Outcome = " << outcome << endl;
+    size_t outcome;
+    if (partone) {
+        day15_battle battle(lines);
+        outcome = battle.start();
+        cout << "Outcome = " << outcome << endl;
+    } else {
+        for (size_t elves_attack = 4; elves_attack < 200; elves_attack++) {
+            day15_battle battle(lines);
+            if (battle.start(elves_attack, outcome)) {
+                cout << "Elves won with attack_power = " << elves_attack << ", outcome = " << outcome << endl;
+                break;
+            } else {
+                cout << "An elf died when the elves had attack_power = " << elves_attack << endl;
+            }
+        }
+    }
     return;
 }

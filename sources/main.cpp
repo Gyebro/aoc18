@@ -41,6 +41,8 @@ int main() {
     //day15("day15_test4.txt"); // Passed 28944
     //day15("day15_test5.txt"); // Passed 18740
     day15("day15.txt");
+    //day15("day15_test5.txt", false); // Passed 34, 1140
+    day15("day15.txt", false);
 #endif
 
     return 0;
