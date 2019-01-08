@@ -34,5 +34,10 @@ int main() {
     day14("day14.txt", false);
 #endif
 
+#ifdef DAY15
+    day15("day15.txt");
+    //day15("day15.txt", false);
+#endif
+
     return 0;
 }

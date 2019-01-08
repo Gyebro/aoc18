@@ -450,23 +450,269 @@ void day14(string inputfile, bool partone) {
             day14_combine(recipes, e1, e2);
         }
         bool found = false;
-        size_t rlen = recipes.size();
+        size_t r = recipes.size();
         size_t i = 0;
         while (!found) {
             // Combine recipes
             day14_combine(recipes, e1, e2);
-            if (recipes.size() - rlen == 1) {
-                found = day14_check(recipes, target, i); i++; // Single recipe added
-            } else {
-                // Two recipes added, check sequence at two locations
+            for (; r<=recipes.size(); r++) {
                 found = day14_check(recipes, target, i); i++;
-                if (!found) {
-                    found = day14_check(recipes, target, i); i++;
-                }
+                if (found) break;
             }
-            rlen = recipes.size();
         }
         cout << "Target sequence found at " << i << " recipes to the left: " << i-1 << endl;
     }
+    return;
+}
+
+class day15_battle {
+private:
+    class unit;
+    class tile {
+    public:
+        size_t x, y;
+        size_t priority;
+        vector<tile*> neighbors;
+        bool wall;
+        bool occupied;
+        tile() {
+            x = y = priority = 0;
+            wall = occupied = false;
+            neighbors.resize(0);
+        }
+        tile(size_t X, size_t Y, bool is_wall, bool has_unit) : x(X), y(Y),
+                       wall(is_wall), occupied(has_unit) {
+            priority = y*1000+x; // TODO: Use proper width
+            neighbors.resize(0); // Will be generated later
+        }
+    };
+    class unit {
+    public:
+        int hp; // 200
+        int attack; // 3
+        bool goblin; // false if elf
+        bool alive;
+        tile* tile_ptr;
+        unit() {
+            hp = 200;
+            attack = 3;
+            alive = true;
+            goblin = false;
+            tile_ptr = nullptr;
+        }
+        unit(bool is_goblin, tile* t_ptr) : goblin(is_goblin), tile_ptr(t_ptr) {
+            hp = 200;
+            attack = 3;
+            alive = true;
+        }
+    };
+    size_t W,H;
+    vector<tile> graph; // Row-continuous matrix but also a node-edge graph representation
+    vector<unit> units;
+    enum class move_result {
+        no_targets_left,
+        not_moved_enemy_in_range,
+        not_moved_enemy_inaccessibly,
+        moved
+    };
+    bool graph_bfs(tile* target_ptr, const size_t max_steps, vector<tile*>& front, vector<vector<tile*>>& paths) {
+        // For every element in the frontline nodes, enumerate compatible children
+        if (front.size() == 0) return false;
+        cout << "BFS: frontline nodes: " << front.size() << endl;
+        vector<tile*> new_front;
+        vector<vector<tile*>> new_paths;
+        bool found = false;
+        tile* t;
+        for (size_t i=0; i<front.size(); i++) {
+            t = front[i];
+            for (tile* n : t->neighbors) {
+                if (n == target_ptr) {
+                    // Target reached
+                    // Update paths with this single one
+                    new_front.clear();
+                    new_paths.clear();
+                    front = new_front;
+                    new_paths.push_back(paths[i]);
+                    new_paths.back().push_back(n);
+                    paths = new_paths;
+                    return true;
+                } else {
+                    if (!n->occupied) {
+                        // Check for max steps and already visited
+                        if (paths[i].size()+1 >= max_steps) {
+                            // Skip this node, max step constraint
+                        } else if (contains(paths, n)) {
+                            // Skip this node as current path already visited n
+                        } else if (contains(new_front, n)) {
+                            // Skip this node as it is already enumerated in the current depth
+                        } else {
+                            new_front.push_back(n);
+                            new_paths.push_back(paths[i]);
+                            new_paths.back().push_back(n);
+                        }
+                    }
+                }
+            }
+        }
+        front = new_front;
+        paths = new_paths;
+        return graph_bfs(target_ptr, max_steps, front, paths);
+    }
+    move_result move(unit& u) {
+        bool target_goblins = !u.goblin; // Goblins target Elves and vice versa
+        vector<unit> targets;
+        for (unit& t : units) {
+            if (t.goblin == target_goblins && u.tile_ptr != t.tile_ptr) targets.push_back(t);
+        }
+        if (targets.empty()) {
+            return move_result::no_targets_left;
+        } else {
+            vector<size_t> distances_to_targets;
+            vector<tile*> shortest_path;
+            vector<tile*> path;
+            size_t lowest_distance = W*H;
+            size_t dist;
+            for (unit& t : targets) {
+                vector<size_t> visited;
+                bool reachable = false;// TODO graph_bfs(u.tile_ptr, t.tile_ptr, lowest_distance, path);
+                if (reachable) {
+                    dist = path.size();
+                    if (dist < lowest_distance) {
+                        shortest_path = path;
+                        lowest_distance = dist;
+                    }
+                }
+            }
+            // If theres a unit in range, return not_moved_can_attack
+            // Do BFS towards all enemy, find who is reachable
+            // Move towards the closest (if exists)
+
+        }
+        return move_result::moved;
+    }
+    void attack(unit& u) {
+        // TODO: Implement
+        // Find closest unit with least hp or with highest priority in range (4 neighbouring tiles)
+        // Attack it, -3 hp
+        // Remove unit if it dies, clean the tile's pointer too!
+        return;
+    }
+    bool round() {
+        // Sort units based on their tile's priority
+        sort(units.begin(), units.end(), [](auto &l, auto &r) { return l.tile_ptr->priority < r.tile_ptr->priority; });
+        // For every unit
+        for (unit& u : units) {
+            // Move with units
+            switch (move(u)) {
+                case move_result::no_targets_left:
+                    // End battle
+                    return false;
+                case move_result::moved:
+                case move_result::not_moved_enemy_in_range:
+                    attack(u);
+                    break;
+                case move_result::not_moved_enemy_inaccessibly:
+                    // Do nothing
+                    break;
+            }
+        }
+        return true;
+    }
+    void build_edges() {
+        size_t x,y;
+        for (tile& t : graph) {
+            if (!t.wall) {
+                // Check four neighbours in reading order
+                x = t.x; y = t.y;
+                if (y > 0) {   if (!graph[(y-1)*W+x].wall) t.neighbors.push_back(&graph[(y-1)*W+x]); } // Top neighbour
+                if (x > 0) {   if (!graph[y*W+(x-1)].wall) t.neighbors.push_back(&graph[y*W+(x-1)]); } // Left
+                if (x < W-1) { if (!graph[y*W+(x+1)].wall) t.neighbors.push_back(&graph[y*W+(x+1)]); } // Right
+                if (y < H-1) { if (!graph[(y+1)*W+x].wall) t.neighbors.push_back(&graph[(y+1)*W+x]); } // Bottom
+            }
+        }
+    }
+public:
+    day15_battle(vector<string> lines) {
+        // Build a graph which will hold tiles. Walls will be edgeless nodes
+        H = lines.size();
+        W = lines[0].size();
+        units.resize(0);
+        graph.reserve(H*W); // otherwise tile_ptrs will be invalid upon vector auto-resize
+        size_t nodes = 0;
+        for (size_t y = 0; y < H; y++) {
+            for (size_t x = 0; x < W; x++) {
+                switch (lines[y][x]) {
+                    case '#':
+                        // Add wall tile
+                        graph.emplace_back(tile(x, y, true, false));
+                        break;
+                    case '.':
+                        // Add tile
+                        graph.emplace_back(tile(x, y, false, false));
+                        nodes++;
+                        break;
+                    case 'G':
+                        // Add Goblin + tile below
+                        graph.emplace_back(tile(x, y, false, true));
+                        units.emplace_back(unit(true, &(graph.back())));
+                        nodes++;
+                        break;
+                    case 'E':
+                        // Add Elf + tile below
+                        graph.emplace_back(tile(x, y, false, true));
+                        units.emplace_back(unit(false, &(graph.back())));
+                        nodes++;
+                        break;
+                    default:
+                        cout << "Error: invalid character found in battle map!\n";
+                        break;
+                }
+            }
+        }
+        build_edges();
+        cout << "Built graph consisting " << nodes << " nodes\n";
+        cout << "Units on battlefield: " << units.size() << endl;
+        // Unit summary
+        for (unit& u : units) {
+            cout << (u.goblin ? "Goblin" : "Elf");
+            cout << " at " << u.tile_ptr->priority << " @ " << u.tile_ptr->x << "," << u.tile_ptr->y;
+            cout << endl;
+        }
+        // Test BFS
+        tile* start =  &(graph[6*W+24]);
+        //tile* target = &(graph[17*W+23]);
+        //tile* target = &(graph[8*W+17]);
+        tile* target = &(graph[13*W+3]);
+        vector<tile*> front;
+        vector<vector<tile*>> paths;
+        front.push_back(start);
+        paths.push_back(front);
+        bool reach = graph_bfs(target, W*H, front, paths);
+        if (reach) { cout << "Reachable in " << paths[0].size() << " steps\n";
+            for (tile* t : paths[0]) {
+                cout << t->y << "," << t->x << endl;
+            }
+        } else {
+            cout << "Not reachable" << endl;
+        }
+    }
+    size_t start() {
+        size_t rounds = 0;
+        while (round()) rounds++; // not counting the last round when the battle ends
+        // Calculate the sum of HPs of alive units
+        size_t hp_sum = 0;
+        for (unit& u : units) {
+            if (u.alive) hp_sum += u.hp;
+        }
+        return rounds*hp_sum;
+    }
+};
+
+
+
+void day15(string inputfile, bool partone) {
+    vector<string> lines = get_lines(inputfile);
+    day15_battle battle(lines);
+    //cout << "Outcome: " << battle.start() << endl;
     return;
 }
