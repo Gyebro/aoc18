@@ -1010,3 +1010,127 @@ void day16(string inputfile, bool partone) {
         cout << "Register 0 is '" << regs[0] << "'\n";
     }
 }
+
+class day17_depth_map {
+public:
+    enum class tile {
+        sand,
+        clay,
+        water,
+        settled_water
+    };
+    class clayrange {
+    public:
+        bool x_fixed;
+        size_t fixed;
+        size_t min, max;
+        clayrange() {
+            x_fixed = true; fixed = min = max = 0;
+        }
+        clayrange(const string& s) {
+            vector<string> p = split(s, ',');
+            vector<string> p1 = split(p[0],'=');
+            fixed = stoul(p1[1]);
+            x_fixed = p1[0]=="x";
+            p1 = split(p[1],'=');
+            vector<string> p2 = split(p1[1],'.');
+            min = stoul(p2.front());
+            max = stoul(p2.back());
+        }
+    };
+    pair<size_t, size_t> source;
+    vector<pair<size_t, size_t>> waterfront;
+    vector<vector<tile>> map;
+    size_t xmin, xmax, ymin, ymax;
+    day17_depth_map(string& inputfile) {
+        vector<string> lines = get_lines(inputfile);
+        vector<clayrange> clays;
+        clayrange cr;
+        xmin = 10000; xmax = 0;
+        ymin = 10000; ymax = 0;
+        for (string& line : lines) {
+            if (line.size()>3) {
+                cr = clayrange(line);
+                if (cr.x_fixed) {
+                    minmax(cr.fixed, xmin, xmax);
+                    minmax(cr.min, ymin, ymax);
+                    minmax(cr.max, ymin, ymax);
+                } else {
+                    minmax(cr.fixed, ymin, ymax);
+                    minmax(cr.min, xmin, xmax);
+                    minmax(cr.max, xmin, xmax);
+                }
+                clays.push_back(cr);
+            }
+        }
+        // Field dimensions along x should be extended by 1
+        xmin--; xmax++;
+        cout << "Field ranges x=" << xmin << ".." << xmax << " y=" << ymin << ".." << ymax << endl;
+        // Build map matrix
+        vector<tile> row;
+        row.resize(xmax-xmin+1);
+        fill(row.begin(), row.end(), tile::sand);
+        map.resize(ymax-ymin+1);
+        fill(map.begin(), map.end(), row);
+        cout << "Depth map is " << map.size() << "x" << map[0].size() << " large\n";
+        // Insert clays
+        size_t claycount = 0;
+        for (const clayrange& c : clays) {
+            if (c.x_fixed) {
+                size_t x = c.fixed;
+                for (size_t y = c.min; y <= c.max; y++) {
+                    if (map[y-ymin][x-xmin] != tile::clay) {
+                        map[y-ymin][x-xmin] = tile::clay;
+                        claycount++;
+                    }
+                }
+            } else {
+                // y value is fixed
+                size_t y = c.fixed;
+                for (size_t x = c.min; x <= c.max; x++) {
+                    if (map[y-ymin][x-xmin] != tile::clay) {
+                        map[y-ymin][x-xmin] = tile::clay;
+                        claycount++;
+                    }
+                }
+            }
+        }
+        cout << "Scan reports " << claycount << " blocks of clay\n";
+        // Water source
+        source = {500, ymin};
+        // Waterfront is the single source currently
+        waterfront.push_back(source);
+        cout << "Waterfront is currently at " << source.first << "," << source.second << endl;
+    }
+    void print(string output) {
+        ofstream out(output);
+        for (vector<tile>& row : map) {
+            for (tile& t : row) {
+                switch (t) {
+                    case tile::sand:
+                        out << '.';
+                        break;
+                    case tile::clay:
+                        out << '#';
+                        break;
+                    case tile::water:
+                        out << '|';
+                        break;
+                    case tile::settled_water:
+                        out << '~';
+                        break;
+                }
+            }
+            out << endl;
+        }
+    }
+};
+
+void day17(string inputfile, bool partone) {
+    day17_depth_map map(inputfile);
+    if (partone) {
+        map.print(inputfile+".map.txt");
+    } else {
+
+    }
+}

@@ -68,4 +68,11 @@ bool contains(const vector<vector<T>>& c, const T& t) {
     return false;
 }
 
+/// Function to expand min/max bounds with a given value
+template<class T>
+void minmax(const T& value, T& min, T& max) {
+    if (value < min) min = value;
+    if (value > max) max = value;
+}
+
 #endif //AOC18_COMMON_H
