@@ -6,6 +6,7 @@
 #include <fstream>
 #include <algorithm>
 #include <iostream>
+#include <list>
 
 int day01(string inputfile, bool partone) {
     // Parse input
@@ -1039,7 +1040,7 @@ public:
         }
     };
     pair<size_t, size_t> source;
-    vector<pair<size_t, size_t>> waterfront;
+    list<pair<size_t, size_t>> waterfront;
     vector<vector<tile>> map;
     size_t xmin, xmax, ymin, ymax;
     day17_depth_map(string& inputfile) {
@@ -1098,39 +1099,211 @@ public:
         cout << "Scan reports " << claycount << " blocks of clay\n";
         // Water source
         source = {500, ymin};
+        get_tile(500, ymin) = tile::water;
         // Waterfront is the single source currently
         waterfront.push_back(source);
         cout << "Waterfront is currently at " << source.first << "," << source.second << endl;
     }
-    void print(string output) {
-        ofstream out(output);
-        for (vector<tile>& row : map) {
-            for (tile& t : row) {
-                switch (t) {
+    void print(ostream& out, bool area_only=false, size_t x=0, size_t y=0) {
+        const int width = 15;
+        if (area_only) {
+            for (int yy=y-width; yy<=y+width; yy++) {
+                for (int xx=x-width; xx<=x+width; xx++) {
+                    if (xx >= xmin && xx <= xmax && yy >= ymin && yy <= ymax) {
+                        if (xx == x && yy == y) {
+                            switch (get_tile(xx,yy)) {
+                                case tile::sand:
+                                    out << ':';
+                                    break;
+                                case tile::clay:
+                                    out << 'X';
+                                    break;
+                                case tile::water:
+                                    out << '"';
+                                    break;
+                                case tile::settled_water:
+                                    out << '=';
+                                    break;
+                            }
+                        } else {
+                            switch (get_tile(xx,yy)) {
+                                case tile::sand:
+                                    out << '.';
+                                    break;
+                                case tile::clay:
+                                    out << '#';
+                                    break;
+                                case tile::water:
+                                    out << '|';
+                                    break;
+                                case tile::settled_water:
+                                    out << '~';
+                                    break;
+                            }
+                        }
+
+                    }
+                }
+                cout << endl;
+            }
+        } else {
+            for (vector<tile>& row : map) {
+                for (tile& t : row) {
+                    switch (t) {
+                        case tile::sand:
+                            out << '.';
+                            break;
+                        case tile::clay:
+                            out << '#';
+                            break;
+                        case tile::water:
+                            out << '|';
+                            break;
+                        case tile::settled_water:
+                            out << '~';
+                            break;
+                    }
+                }
+                out << endl;
+            }
+        }
+    }
+    tile& get_tile(const size_t x, const size_t y) {
+        return map[y-ymin][x-xmin];
+    }
+    void spread_water(size_t x, size_t y, size_t& left_wall, size_t& right_wall, bool left) {
+        bool spreading = true;
+        while (spreading) {
+            if (left) {x--;} else {x++;}
+            // TODO: Fails if diagonal clay walls are allowed!
+            if (get_tile(x,y+1)==tile::clay || get_tile(x,y+1)==tile::settled_water) {
+                if (get_tile(x,y)==tile::sand) {
+                    get_tile(x,y)=tile::water; // Sand turns to water
+                } else if (get_tile(x,y)==tile::clay) {
+                    if (left) {left_wall = x;} else {right_wall = x;}
+                    spreading = false;
+                } else if (get_tile(x,y)==tile::water) {
+                    // Go on spreading, but check for sand gap
+                    if (left) { if (get_tile(x+1,y)==tile::sand) get_tile(x+1,y)=tile::water; }
+                    else      { if (get_tile(x-1,y)==tile::sand) get_tile(x-1,y)=tile::water; }
+                } else {
+                    cout << "Warning: horizontal flow meets [settled_water]!\n";
+                    spreading = false;
+                }
+            } else if (get_tile(x,y)==tile::sand) { // No support and left side is sand
+                get_tile(x,y)=tile::water;
+                waterfront.emplace_back(pair<size_t,size_t>(x,y)); // No support, new waterfront
+                spreading = false;
+            } else {
+                // No support and tile is something else
+                spreading = false;
+            }
+        }
+    }
+    void solve_waterfront(pair<size_t, size_t> wf, bool print_to_console = false) {
+        // Solve a single waterfront and create new ones if necessary
+        // Waterfront should be an (unsettled) water
+        // Fall downwards until
+        // a) [clay or settled_water] is met
+        // b) map ends
+        // Case a) save current location for backtrack
+        //  Move to the left and right until water is supported by [clay|settled]
+        //  Case i) horizontal movement is blocked by [clay]
+        //  Case ii) support ends -> new waterfront
+        // If both ends are blocked by [clay], create a row of [settled_water] and backtrack
+        size_t x = wf.first;
+        size_t y = wf.second;
+        bool flowing = true;
+        size_t back_x, back_y;
+        bool spreading;
+        size_t left_wall, right_wall;
+        while (flowing) { // tile(x,y) == water
+            if (print_to_console) {
+                print(cout, true, x, y);
+                cout << endl;
+            }
+            if (get_tile(x,y) != tile::water) {
+                //cout << "Warning: waterfront contains non-[water] tile!\n";
+                switch(get_tile(x,y)) {
                     case tile::sand:
-                        out << '.';
-                        break;
-                    case tile::clay:
-                        out << '#';
-                        break;
-                    case tile::water:
-                        out << '|';
+                        get_tile(x,y) = tile::water;
                         break;
                     case tile::settled_water:
-                        out << '~';
+                    case tile::clay:
+                        flowing = false;
                         break;
                 }
             }
-            out << endl;
+            // Check next tile below
+            if (y+1 > ymax) {
+                // End of flow
+                flowing = false;
+            } else {
+                switch (get_tile(x,y+1)) {
+                    case tile::water:
+                        // End of flow, flat unsettled water should already be resolved
+                        flowing = false;
+                        break;
+                    case tile::sand:
+                        // Flowing continues down, wetting the current sand
+                        get_tile(x,y+1)=tile::water;
+                        y++;
+                        break;
+                    case tile::clay:
+                    case tile::settled_water:
+                        // Start spreading horizontally
+                        back_x=x; back_y=y-1;
+                        left_wall = right_wall = 0;
+                        spread_water(x, y, left_wall, right_wall, true); // Spread left
+                        spread_water(x, y, left_wall, right_wall, false); // Spread right
+                        if (left_wall > 0 && right_wall > 0) {
+                            // Convert water to settled_water
+                            for (size_t wx = left_wall+1; wx<right_wall; wx++) {
+                                get_tile(wx, y) = tile::settled_water;
+                            }
+                            // Backtrack
+                            x = back_x;
+                            y = back_y;
+                        } else {
+                            flowing = false;
+                        }
+                        break;
+                }
+            }
+
         }
+
+    }
+    void solve(bool print_to_console = false) {
+        // Continue all waterfronts and simulate water flow
+        while (waterfront.size() > 0) {
+            solve_waterfront(waterfront.front(),print_to_console);
+            waterfront.pop_front();
+        }
+    }
+    size_t count_water(bool settled_only = false) {
+        size_t water = 0;
+        for (const vector<tile>& row : map) {
+            for (const tile& t : row) {
+                if (settled_only) {
+                    if (t == tile::settled_water) water++;
+                } else {
+                    if (t == tile::water || t == tile::settled_water) water++;
+                }
+            }
+        }
+        return water;
     }
 };
 
 void day17(string inputfile, bool partone) {
     day17_depth_map map(inputfile);
+    map.solve();
     if (partone) {
-        map.print(inputfile+".map.txt");
+        cout << "Water amount: " << map.count_water() << endl;
     } else {
-
+        cout << "Settled water amount: " << map.count_water(true) << endl;
     }
+    ofstream out(inputfile+".map.txt");
+    map.print(out);
 }

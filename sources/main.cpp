@@ -51,9 +51,10 @@ int main() {
 #endif
 
 #ifdef DAY17
-    //day17("day17_test.txt");
+    //day17("day17_test.txt"); // Passed 57
     day17("day17.txt");
     //day17("day17.txt", false);
+    day17("day17.txt", false);
 #endif
 
     return 0;
