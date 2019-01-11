@@ -1361,7 +1361,7 @@ public:
             return acre::undefined;
         }
     }
-    acre magic(int x, int y) {
+    bool magic(int x, int y) {
         // Get neighbours
         vector<acre> neighbours;
         neighbours.push_back(get(x-1,y-1));
@@ -1397,7 +1397,9 @@ public:
                 cout << "Error: map contains undefined acre!\n";
                 break;
         }
-        return result;
+        uint8_t other = (frame_ptr == 0) ? 1 : 0;
+        maps[other][y*W+x] = result;
+        return maps[frame_ptr][y*W+x] == result; // Return true if no change
     }
     void print() {
         for (size_t y = 0; y < H; y++) {
@@ -1417,18 +1419,20 @@ public:
         }
         cout << endl;
     }
-    void tick(bool print_forest = false) {
-        uint8_t other = (frame_ptr == 0) ? 1 : 0;
+    bool tick(bool print_forest = false) {
+        bool steady = true;
         for (size_t y = 0; y < H; y++) {
             for (size_t x = 0; x < W; x++) {
-                maps[other][y*W+x] = magic(x, y);
+                steady &= magic(x, y);
             }
         }
         // Replace map after tick is done
+        uint8_t other = (frame_ptr == 0) ? 1 : 0;
         frame_ptr = other;
         if (print_forest) {
             print();
         }
+        return steady;
     }
     size_t count_acres(const acre& a) {
         return count(maps[frame_ptr].begin(), maps[frame_ptr].end(), a);
@@ -1442,11 +1446,22 @@ void day18(string inputfile, bool partone) {
         size_t resource = forest.count_acres(day18_forest::acre::trees) * forest.count_acres(day18_forest::acre::lumberyard);
         cout << "Resource value: " << resource << endl;
     } else {
-        for (size_t t=0; t<1000000000; t++) {
-            if (t % 10000 == 0) {
+        bool print;
+        for (size_t t=1; t<=120000-70000; t++) {
+            /*if (t % 10000 == 0) {
                 cout << "Progress: " << t/10000000.0 << "%\n";
+                print = true;
+            } else {
+                print = false;
+            }*/
+            if (forest.tick(false)) {
+                cout << "Steady state after " << t << " minutes\n";
+                break;
             }
-            forest.tick(false);
+            /*if (print) {
+                size_t resource = forest.count_acres(day18_forest::acre::trees) * forest.count_acres(day18_forest::acre::lumberyard);
+                cout << "T = " << t << ", Resource value: " << resource << endl;
+            }*/
         }
         size_t resource = forest.count_acres(day18_forest::acre::trees) * forest.count_acres(day18_forest::acre::lumberyard);
         cout << "Resource value: " << resource << endl;
