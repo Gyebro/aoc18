@@ -57,5 +57,11 @@ int main() {
     day17("day17.txt", false);
 #endif
 
+#ifdef DAY18
+    day18("day18_test.txt"); // Passed 1147
+    day18("day18.txt");
+    day18("day18.txt", false);
+#endif
+
     return 0;
 }

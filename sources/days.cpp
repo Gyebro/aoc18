@@ -1307,3 +1307,148 @@ void day17(string inputfile, bool partone) {
     ofstream out(inputfile+".map.txt");
     map.print(out);
 }
+
+class day18_forest {
+public:
+    enum class acre {
+        open_ground,
+        trees,
+        lumberyard,
+        undefined
+    };
+private:
+    size_t W;
+    size_t H;
+    uint8_t frame_ptr;
+    vector<acre> maps[2]; // Row-continuous
+    // Double buffering for ticks to increase speed
+public:
+    day18_forest(string inputfile) {
+        vector<string> lines = get_lines(inputfile);
+        H = lines.size();
+        W = lines[0].size();
+        cout << "Building map for a " << H << "x" << W << " acre large forest\n";
+        vector<acre> row;
+        frame_ptr = 0;
+        maps[frame_ptr].reserve(H*W);
+        acre a = acre::undefined;
+        for (const string& line : lines) {
+            for (const char& c : line) {
+                switch (c) {
+                    case '|':
+                        a = acre::trees;
+                        break;
+                    case '.':
+                        a = acre::open_ground;
+                        break;
+                    case '#':
+                        a = acre::lumberyard;
+                        break;
+                    default:
+                        cout << "Error: invalid character found in the map of forest '" << c << "'\n";
+                        break;
+                }
+                maps[frame_ptr].push_back(a);
+            }
+        }
+        // Initialize other map
+        maps[1] = maps[0];
+    }
+    acre get(int x, int y) {
+        if (0 <= x && x < W && 0 <= y && y < H) {
+            return maps[frame_ptr][y*W+x];
+        } else {
+            return acre::undefined;
+        }
+    }
+    acre magic(int x, int y) {
+        // Get neighbours
+        vector<acre> neighbours;
+        neighbours.push_back(get(x-1,y-1));
+        neighbours.push_back(get(x  ,y-1));
+        neighbours.push_back(get(x+1,y-1));
+        neighbours.push_back(get(x-1,y));
+        // Skip itself           x  ,y
+        neighbours.push_back(get(x+1,y));
+        neighbours.push_back(get(x-1,y+1));
+        neighbours.push_back(get(x  ,y+1));
+        neighbours.push_back(get(x+1,y+1));
+        size_t trees       =  count(neighbours.begin(), neighbours.end(), acre::trees);
+        size_t lumberyards =  count(neighbours.begin(), neighbours.end(), acre::lumberyard);
+        size_t open_grounds = count(neighbours.begin(), neighbours.end(), acre::open_ground);
+        acre result = maps[frame_ptr][y*W+x]; // Assume that nothing happens
+        switch (maps[frame_ptr][y*W+x]) {
+            case acre::open_ground:
+                // An open acre will become filled with trees if three or more adjacent acres contained trees.
+                // Otherwise, nothing happens.
+                if (trees >= 3) result = acre::trees;
+                break;
+            case acre::trees:
+                // An acre filled with trees will become a lumberyard if three or more adjacent acres were lumberyards.
+                // Otherwise, nothing happens.
+                if (lumberyards >= 3) result = acre::lumberyard;
+                break;
+            case acre::lumberyard:
+                // An acre containing a lumberyard will remain a lumberyard if it was adjacent to at least one
+                // other lumberyard and at least one acre containing trees. Otherwise, it becomes open.
+                if (lumberyards == 0 || trees == 0) result = acre::open_ground;
+                break;
+            case acre::undefined:
+                cout << "Error: map contains undefined acre!\n";
+                break;
+        }
+        return result;
+    }
+    void print() {
+        for (size_t y = 0; y < H; y++) {
+            for (size_t x = 0; x < W; x++) {
+                switch (maps[frame_ptr][y*W+x]) {
+                    case acre::open_ground:
+                        cout << '.'; break;
+                    case acre::trees:
+                        cout << '|'; break;
+                    case acre::lumberyard:
+                        cout << '#'; break;
+                    case acre::undefined:
+                        cout << '?'; break;
+                }
+            }
+            cout << endl;
+        }
+        cout << endl;
+    }
+    void tick(bool print_forest = false) {
+        uint8_t other = (frame_ptr == 0) ? 1 : 0;
+        for (size_t y = 0; y < H; y++) {
+            for (size_t x = 0; x < W; x++) {
+                maps[other][y*W+x] = magic(x, y);
+            }
+        }
+        // Replace map after tick is done
+        frame_ptr = other;
+        if (print_forest) {
+            print();
+        }
+    }
+    size_t count_acres(const acre& a) {
+        return count(maps[frame_ptr].begin(), maps[frame_ptr].end(), a);
+    }
+};
+
+void day18(string inputfile, bool partone) {
+    day18_forest forest(inputfile);
+    if (partone) {
+        for (size_t t=0; t<10; t++) forest.tick(false); // true will print the map
+        size_t resource = forest.count_acres(day18_forest::acre::trees) * forest.count_acres(day18_forest::acre::lumberyard);
+        cout << "Resource value: " << resource << endl;
+    } else {
+        for (size_t t=0; t<1000000000; t++) {
+            if (t % 10000 == 0) {
+                cout << "Progress: " << t/10000000.0 << "%\n";
+            }
+            forest.tick(false);
+        }
+        size_t resource = forest.count_acres(day18_forest::acre::trees) * forest.count_acres(day18_forest::acre::lumberyard);
+        cout << "Resource value: " << resource << endl;
+    }
+}
