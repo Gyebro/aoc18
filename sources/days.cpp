@@ -1744,6 +1744,40 @@ public:
         }
         return r0;
     }
+    size_t activation_proc(size_t r0_val = 0, bool force_quit = false) {
+        size_t r0 = r0_val;
+        size_t r1 = 0;
+        size_t r2 = 0;
+        size_t r3 = 0;
+        size_t r4 = 0;
+        do {
+            r4 = r1|65536;
+            r1 = 12772194;
+            loop1:
+            r3 = r4&255;
+            r1 += r3;
+            r1 = r1&16777215;
+            r1 *= 65899;
+            r1 = r1&16777215;
+            if (256 > r4) {
+                // Return to outer cycle
+            } else {
+                r3 = 0;
+                loop2:
+                r2 = r3+1;
+                r2 *= 256;
+                if (r2 > r4) {
+                    r4 = r3;
+                    goto loop1;
+                } else {
+                    r3++;
+                    goto loop2;
+                }
+            }
+            if (force_quit) return r1;
+        } while (r1 != r0);
+        return 0;
+    }
 };
 
 void day19(string inputfile, bool partone) {
@@ -1761,5 +1795,18 @@ void day19(string inputfile, bool partone) {
         // Even this is too slow
         //cout << "Trying with compiled version: " << device.background_proc(1) << endl;
         cout << "Running optimized background process: " << device.background_proc_opt(1) << endl;
+    }
+}
+
+void day21(string inputfile, bool partone) {
+    time_travel_device_emulator device(inputfile);
+    if (partone) {
+        //device.decompile();
+        // Only for debug mode
+        //device.run();
+        // Run the activation process with force_quit
+        cout << device.activation_proc(0, true) << endl; // Passed!
+    } else {
+
     }
 }
