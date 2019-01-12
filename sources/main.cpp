@@ -60,7 +60,12 @@ int main() {
 #ifdef DAY18
     //day18("day18_test.txt"); // Passed 1147
     day18("day18.txt");
-    day18("day18.txt", false); // There is a period of 70000 (or lower), after the first 50k
+    day18("day18.txt", false);
+#endif
+
+#ifdef DAY19
+    day19("day19.txt");
+    day19("day19.txt", false);
 #endif
 
     return 0;

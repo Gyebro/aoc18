@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <iostream>
 #include <list>
+#include <cmath>
 
 int day01(string inputfile, bool partone) {
     // Parse input
@@ -823,7 +824,7 @@ const day16_op day16_ops[] = {day16_op::addr, day16_op::addi, day16_op::mulr, da
                               day16_op::setr, day16_op::seti, day16_op::gtir, day16_op::gtri,
                               day16_op::gtrr, day16_op::eqir, day16_op::eqri, day16_op::eqrr};
 
-const string day16_op_names[] = {"addr", "addi", "mulr", "muli",
+const vector<string> day16_op_names = {"addr", "addi", "mulr", "muli",
                                  "banr", "bani", "borr", "bori",
                                  "setr", "seti", "gtir", "gtri",
                                  "gtrr", "eqir", "eqri", "eqrr"};
@@ -1480,5 +1481,285 @@ void day18(string inputfile, bool partone) {
         size_t k = (t-tmod)/period;
         resource = resource_values[tmod+k*period-1];
         cout << "Resource value at t=" << t_end << " is " << resource << endl;
+    }
+}
+
+class time_travel_device_emulator {
+private:
+    vector<day16_instr> program;
+    vector<int> regs;
+    int ip;
+    size_t ip_reg;
+    void apply(const day16_instr& i) {
+        // Write ip to ip_reg
+        regs[ip_reg] = ip;
+        switch ((day16_op)i.opcode) {
+            case day16_op::addr:
+                regs[i.c] = regs[i.a]+regs[i.b];
+                break;
+            case day16_op::addi:
+                regs[i.c] = regs[i.a]+i.b;
+                break;
+            case day16_op::mulr:
+                regs[i.c] = regs[i.a]*regs[i.b];
+                break;
+            case day16_op::muli:
+                regs[i.c] = regs[i.a]*i.b;
+                break;
+            case day16_op::banr:
+                regs[i.c] = regs[i.a] & regs[i.b];
+                break;
+            case day16_op::bani:
+                regs[i.c] = regs[i.a] & i.b;
+                break;
+            case day16_op::borr:
+                regs[i.c] = regs[i.a] | regs[i.b];
+                break;
+            case day16_op::bori:
+                regs[i.c] = regs[i.a] | i.b;
+                break;
+            case day16_op::setr:
+                regs[i.c] = regs[i.a];
+                break;
+            case day16_op::seti:
+                regs[i.c] = i.a;
+                break;
+            case day16_op::gtir:
+                regs[i.c] = (i.a > regs[i.b]);
+                break;
+            case day16_op::gtri:
+                regs[i.c] = (regs[i.a] > i.b);
+                break;
+            case day16_op::gtrr:
+                regs[i.c] = (regs[i.a] > regs[i.b]);
+                break;
+            case day16_op::eqir:
+                regs[i.c] = (i.a == regs[i.b]);
+                break;
+            case day16_op::eqri:
+                regs[i.c] = (regs[i.a] == i.b);
+                break;
+            case day16_op::eqrr:
+                regs[i.c] = (regs[i.a] == regs[i.b]);
+                break;
+        }
+        // Read ip_reg into ip
+        ip = regs[ip_reg];
+    }
+    string print_reg(int r, size_t idx) {
+        if (r == ip_reg) {
+            return ""+to_string(idx);
+        } else {
+            return "r["+to_string(r)+"]";
+        }
+    }
+    void interpret_inst(const day16_instr& i, size_t x) {
+        string rhs;
+        bool tab = false;
+        switch ((day16_op)i.opcode) {
+            case day16_op::addr:
+                rhs = print_reg(i.a,x) + "+" + print_reg(i.b,x);
+                break;
+            case day16_op::addi:
+                rhs = print_reg(i.a,x) + "+" + to_string(i.b);
+                break;
+            case day16_op::mulr:
+                rhs = print_reg(i.a,x) + "*" + print_reg(i.b,x);
+                break;
+            case day16_op::muli:
+                rhs = print_reg(i.a,x) + "*" + to_string(i.b);
+                break;
+            case day16_op::banr:
+                rhs = print_reg(i.a,x) + "&" + print_reg(i.b,x);
+                break;
+            case day16_op::bani:
+                rhs = print_reg(i.a,x) + "&" + to_string(i.b);
+                break;
+            case day16_op::borr:
+                rhs = print_reg(i.a,x) + "|" + print_reg(i.b,x);
+                break;
+            case day16_op::bori:
+                rhs = print_reg(i.a,x) + "|" + to_string(i.b);
+                break;
+            case day16_op::setr:
+                rhs = print_reg(i.a,x); tab = true;
+                break;
+            case day16_op::seti:
+                rhs = to_string(i.a); tab = true;
+                break;
+            case day16_op::gtir:
+                rhs = to_string(i.a) + ">" + print_reg(i.b,x);
+                break;
+            case day16_op::gtri:
+                rhs = print_reg(i.a,x) + ">" + to_string(i.b);
+                break;
+            case day16_op::gtrr:
+                rhs = print_reg(i.a,x) + ">" + print_reg(i.b,x);
+                break;
+            case day16_op::eqir:
+                rhs = to_string(i.a) + "==" + print_reg(i.b,x);
+                break;
+            case day16_op::eqri:
+                rhs = print_reg(i.a,x) + "==" + to_string(i.b);
+                break;
+            case day16_op::eqrr:
+                rhs = print_reg(i.a,x) + "==" + print_reg(i.b,x);
+                break;
+        }
+        cout << "r[" << i.c << "]=";
+        cout << rhs;
+        if (tab) cout << "\t";
+        if (i.c == ip_reg) {
+            cout << "\tGOTO: " << rhs << "+1";
+        }
+        cout << endl;
+    }
+public:
+    time_travel_device_emulator(string inputfile) {
+        day16_instr i;
+        ip = 0;
+        for (string& line : get_lines(inputfile)) {
+            vector<string> p = split(line, ' ');
+            if (p.size()==4) {
+                // Find opcode based on name
+                auto result = find(begin(day16_op_names), end(day16_op_names), p[0]);
+                i.opcode = distance(begin(day16_op_names),result);
+                if (i.opcode >= day16_op_names.size()) {
+                    cout << "Error: invalid instruction name found while parsing program\n";
+                }
+                i.a = stoul(p[1]);
+                i.b = stoul(p[2]);
+                i.c = stoul(p[3]);
+                program.push_back(i);
+            } else if (p.size()==2) {
+                // IP
+                ip_reg = stoul(p[1]);
+                cout << "Instruction pointer is bound to register " << ip_reg << endl;
+            }
+        }
+        cout << "Program contains " << program.size() << " instructions\n";
+        // Registers
+        regs.resize(6);
+        fill(regs.begin(), regs.end(), 0);
+    }
+    void run(vector<int> initial_reg_values, size_t report_rate = 10000000) {
+        // Initialize registers
+        regs = initial_reg_values;
+        // Reset IP
+        ip = 0;
+        // Run program
+        cout << "Running program...\n";
+        bool running = true;
+        size_t t = 0;
+        while (running) {
+            apply(program[ip]);
+            ip++;
+            if (ip >= program.size() || ip < 0) {
+                running = false;
+            }
+            if (t > 0 && (t % report_rate == 0)) {
+                cout << "t = " << t << ", regs: [ ";
+                for (int& i : regs) { cout << i << " "; }
+                cout << "]\n";
+            }
+            t++;
+        }
+    }
+    void run() {
+        run({0,0,0,0,0,0});
+    }
+    void decompile() {
+        for (size_t i=0; i<program.size(); i++) {
+            cout << "i:" << i << "\t";
+            interpret_inst(program[i], i);
+        }
+    }
+    vector<int> registers() {
+        return regs;
+    }
+    int background_proc(int r0_val = 0) {
+        int r0=r0_val, r1=0, r2=0, r3=0, r4=0, r5=0;
+        // First part of initialisation
+        r2 += 2;  // i17
+        r2 *= r2; // i18
+        r2 *= 19; // i19
+        r2 *= 11; // i20
+        r3 += 8;  // i21
+        r3 *= 22; // i22
+        r3 += 16; // i23
+        r2 += r3; // i24, r2 = 1028
+        if (r0 == 1) { // i25
+            // Jump over the next GOTO, arriving to second part of init
+            r3 = 27;  // i27
+            r3 *= 28; // i28
+            r3 += 29; // i29
+            r3 *= 30; // i30
+            r3 *= 14; // i31
+            r3 *= 32; // i32
+            r2 += r3; // i33, r2 = 1028 + 10550400 = 10551428
+            r0 = 0;
+        }
+        // Main program
+        while (r1 <= r2) { // i13-i15
+            r4 = 1;
+            while (r4 <= r2) { // i9-i11
+                r3 = r1*r4;
+                if (r3 == r2) {
+                    r0 += r1; // Counting the sum divisors of r2 into r0
+                }
+                r4++;
+            }
+            r1++;
+        }
+        return r0;
+    }
+    int background_proc_opt(int r0_val = 0) {
+        int r0=r0_val, r1=0, r2=0, r3=0, r4=0, r5=0;
+        // First part of initialisation
+        r2 += 2;  // i17
+        r2 *= r2; // i18
+        r2 *= 19; // i19
+        r2 *= 11; // i20
+        r3 += 8;  // i21
+        r3 *= 22; // i22
+        r3 += 16; // i23
+        r2 += r3; // i24, r2 = 1028
+        if (r0 == 1) { // i25
+            // Jump over the next GOTO, arriving to second part of init
+            r3 = 27;  // i27
+            r3 *= 28; // i28
+            r3 += 29; // i29
+            r3 *= 30; // i30
+            r3 *= 14; // i31
+            r3 *= 32; // i32
+            r2 += r3; // i33, r2 = 1028 + 10550400 = 10551428
+            r0 = 0;
+        }
+        // Main program
+        // Find divisors of r2 and calculate their sum into r0
+        for (r1 = 1; r1 < sqrt(r2); r1++) {
+            if (r2 % r1 == 0) {
+                r0 += r1 + (r2/r1); // Add divisors in pairs
+            }
+        }
+        return r0;
+    }
+};
+
+void day19(string inputfile, bool partone) {
+    time_travel_device_emulator device(inputfile);
+    if (partone) {
+        device.run();
+        cout << "Register 0 is " << device.registers()[0] << endl;
+        cout << "Checking with compiled version: " << device.background_proc(0) << endl;
+        cout << "Checking with optimized version: " << device.background_proc_opt(0) << endl;
+    } else {
+        // Interpret program instructions, does not unfold goto-s into while loops
+        //device.decompile();
+        // This is terribly slow
+        //device.run({1,0,0,0,0,0}, 10000000);
+        // Even this is too slow
+        //cout << "Trying with compiled version: " << device.background_proc(1) << endl;
+        cout << "Running optimized background process: " << device.background_proc_opt(1) << endl;
     }
 }
