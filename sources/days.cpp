@@ -1446,24 +1446,39 @@ void day18(string inputfile, bool partone) {
         size_t resource = forest.count_acres(day18_forest::acre::trees) * forest.count_acres(day18_forest::acre::lumberyard);
         cout << "Resource value: " << resource << endl;
     } else {
-        bool print;
-        for (size_t t=1; t<=120000-70000; t++) {
-            /*if (t % 10000 == 0) {
-                cout << "Progress: " << t/10000000.0 << "%\n";
-                print = true;
-            } else {
-                print = false;
-            }*/
-            if (forest.tick(false)) {
+        vector<size_t> resource_values;
+        size_t resource;
+        size_t t;
+        size_t t_end = 1000000000;
+        size_t period = 0; // Period candidate, will be accepted if two successive samples show the same period
+        for (t=1; t<=t_end; t++) {
+            if (forest.tick(false)) { // Check for steady state
                 cout << "Steady state after " << t << " minutes\n";
                 break;
+            } else { // Check for periodicity
+                resource = forest.count_acres(day18_forest::acre::trees) * forest.count_acres(day18_forest::acre::lumberyard);
+                if (contains(resource_values, resource)) {
+                    auto result = find(resource_values.rbegin(), resource_values.rend(), resource);
+                    size_t pos = distance(resource_values.rbegin(), result)+1;
+                    if (period == pos) {
+                        period = pos;
+                        resource_values.push_back(resource);
+                        cout << "Forest evolution is periodic with p = " << period << endl;
+                        cout << "Stopped at t = " << t << endl;
+                        break;
+                    }
+                    period = pos;
+                } else {
+                    period = 0;
+                }
+                resource_values.push_back(resource);
             }
-            /*if (print) {
-                size_t resource = forest.count_acres(day18_forest::acre::trees) * forest.count_acres(day18_forest::acre::lumberyard);
-                cout << "T = " << t << ", Resource value: " << resource << endl;
-            }*/
         }
-        size_t resource = forest.count_acres(day18_forest::acre::trees) * forest.count_acres(day18_forest::acre::lumberyard);
-        cout << "Resource value: " << resource << endl;
+        // Calculate resource value at t_end using periodicity, end of evolution sequence is periodic now
+        size_t tmod = t_end % period;
+        // Get resource_value from the end of sequence, at tmod + k*period < t, where k is max
+        size_t k = (t-tmod)/period;
+        resource = resource_values[tmod+k*period-1];
+        cout << "Resource value at t=" << t_end << " is " << resource << endl;
     }
 }
