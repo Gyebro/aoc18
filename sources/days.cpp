@@ -1750,6 +1750,7 @@ public:
         size_t r2 = 0;
         size_t r3 = 0;
         size_t r4 = 0;
+        vector<size_t> r0_vals;
         do {
             r4 = r1|65536;
             r1 = 12772194;
@@ -1775,6 +1776,13 @@ public:
                 }
             }
             if (force_quit) return r1;
+            else {
+                if (!contains(r0_vals, r1)) {
+                    r0_vals.push_back(r1);
+                } else {
+                    return r0_vals.back();
+                }
+            }
         } while (r1 != r0);
         return 0;
     }
@@ -1805,8 +1813,8 @@ void day21(string inputfile, bool partone) {
         // Only for debug mode
         //device.run();
         // Run the activation process with force_quit
-        cout << device.activation_proc(0, true) << endl; // Passed!
+        cout << "Activation halts fastest with r0 = " << device.activation_proc(0, true) << endl; // Passed!
     } else {
-
+        cout << "Activation halts slowest with r0 = " << device.activation_proc(0, false) << endl;
     }
 }

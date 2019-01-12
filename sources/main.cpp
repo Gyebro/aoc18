@@ -70,7 +70,7 @@ int main() {
 
 #ifdef DAY21
     day21("day21.txt");
-    //day21("day21.txt", false);
+    day21("day21.txt", false);
 #endif
 
     return 0;
