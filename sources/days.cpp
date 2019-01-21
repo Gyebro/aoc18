@@ -1928,7 +1928,7 @@ public:
         }
         return result;
     }
-    day20_map(const string& regex_str) : regex(regex_str) {
+    day20_map(const string& regex_str, bool print_map = false) : regex(regex_str) {
         // Count movements
         size_t w = count(regex.begin(), regex.end(), 'W');
         size_t e = count(regex.begin(), regex.end(), 'E');
@@ -1958,17 +1958,21 @@ public:
             regex_ptr = 1;
             build_graph(depth, front, regex_ptr);
         }
-        print(origin);
+        if (print_map) print(origin);
     }
-    size_t bfs_count_steps(bool print = false) {
+    size_t bfs_count_steps(bool print = false, size_t min_steps = 0) {
         vector<node> front;
         front.push_back(get_node(origin));
-        vector<node> visited;
+        vector<node> visited, far_rooms;
         visited.push_back(get_node(origin));
         size_t steps = 0;
         bfs_print = print;
-        bfs(front, visited, steps);
-        return steps;
+        bfs(front, visited, steps, min_steps, far_rooms);
+        if (min_steps == 0) {
+            return steps;
+        } else {
+            return far_rooms.size();
+        }
     }
     void print(pair<int,int> loc, vector<node> front = {}, vector<node> visited = {}) {
         string row1;
@@ -2004,7 +2008,7 @@ public:
         }
         cout << endl;
     }
-    bool bfs(vector<node>& front, vector<node>& visited, size_t& steps) {
+    bool bfs(vector<node>& front, vector<node>& visited, size_t& steps, size_t min_steps, vector<node>& far_rooms) {
         // For every element in the frontline nodes, enumerate compatible children
         node t, neighbour;
         vector<node> new_front;
@@ -2030,6 +2034,11 @@ public:
                     if (!contains(visited, neighbour)) {
                         new_front.push_back(neighbour);
                         visited.push_back(neighbour);
+                        if (min_steps > 0 && steps >= min_steps-1) {
+                            if (!contains(far_rooms, neighbour)) {
+                                far_rooms.push_back(neighbour);
+                            }
+                        }
                     }
                 } // End if edge exists
             } // End for all edges
@@ -2037,9 +2046,9 @@ public:
         front = new_front;
         if (front.empty()) return false;
         steps++;
-        cout << "Steps: " << steps << ", visited: " << visited.size() << ", front: " << front.size() << endl;
+        //cout << "Steps: " << steps << ", visited: " << visited.size() << ", front: " << front.size() << endl;
         if (bfs_print) print(t.coord, front, visited);
-        return bfs(front, visited, steps);
+        return bfs(front, visited, steps, min_steps, far_rooms);
     }
 };
 
@@ -2058,7 +2067,8 @@ void day20(string inputfile, bool partone) {
         size_t steps = map.bfs_count_steps();
         cout << "Max steps to reach the furthest room (i.e. walk through the whole facility): " << steps << endl;
     } else {
-
+        size_t rooms = map.bfs_count_steps(false, 1000);
+        cout << "Rooms with at least 1000 doors away: " << rooms << endl;
     }
 }
 

@@ -74,7 +74,7 @@ int main() {
     //day20("day20_test3.txt"); // Map: OK, BFS: OK
     //day20("day20_test4.txt"); // Map: OK, BFS: OK
     day20("day20.txt");
-    //day20("day20.txt", false);
+    day20("day20.txt", false);
 #endif
 
 #ifdef DAY21
