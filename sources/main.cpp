@@ -82,5 +82,10 @@ int main() {
     day21("day21.txt", false);
 #endif
 
+#ifdef DAY22
+    day22("day22.txt");
+    //day22("day22.txt", false);
+#endif
+
     return 0;
 }

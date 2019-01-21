@@ -2084,3 +2084,96 @@ void day21(string inputfile, bool partone) {
         cout << "Activation halts slowest with r0 = " << device.activation_proc(0, false) << endl;
     }
 }
+
+class day22_cave {
+public:
+    enum class type {
+        rocky,
+        wet,
+        narrow
+    };
+    class tile {
+    public:
+        type region_type;
+        size_t geologic_index;
+        size_t erosion_level;
+    };
+    size_t d, tx, ty;
+    vector<vector<tile>> map;
+    vector<vector<vector<tile>>> map_layers; // 3 layers, one for each tool {torch, climbing_gear, none}
+    day22_cave(size_t depth, size_t W, size_t H, size_t target_x, size_t target_y) : d(depth), tx(target_x), ty(target_y) {
+        // Generate cave up to W and H
+        map.reserve(H+1);
+        size_t gi, el;
+        type t;
+        tile T;
+        for (size_t y=0; y<=H; y++) {
+            vector<tile> row;
+            row.reserve(W+1);
+            for (size_t x=0; x<=W; x++) {
+                // Determine geologic index
+                if (x==0 && y==0) {
+                    gi = 0;
+                } else if (x==tx && y==ty) {
+                    gi = 0;
+                } else if (y==0) {
+                    gi = x*16807;
+                } else if (x==0) {
+                    gi = y*48271;
+                } else {
+                    // geologic index is the result of multiplying the erosion levels of the regions at X-1,Y and X,Y-1
+                    gi = row[x-1].erosion_level * map[y-1][x].erosion_level;
+                }
+                // erosion level is its geologic index plus the cave system's depth, all modulo 20183.
+                el = (gi + d) % 20183;
+                // Then el % 3 -> {rocky, wet, narrow}
+                t = (type)(el % 3);
+                // Save region
+                T.geologic_index = gi;
+                T.erosion_level = el;
+                T.region_type = t;
+                row.push_back(T);
+            }
+            map.push_back(row);
+        }
+    }
+    size_t risk_level() {
+        size_t risk = 0;
+        for (size_t y = 0; y <= ty; y++) {
+            for (size_t x = 0; x <= tx; x++) {
+                risk += (size_t)(map[y][x].region_type);
+            }
+        }
+        return risk;
+    }
+    size_t rescue_target() {
+        // Setup map layers
+        map_layers.reserve(3);
+        map_layers.push_back(map); // Torch
+        map_layers.push_back(map); // Climbing gear
+        map_layers.push_back(map); // None
+        // This is a directed graph, all layers are connected, moving between them takes 7 minutes
+        // Start is {0,0,0}, Target is {0,tx,ty}
+        // Moving to a *rocky* region requires being in layer {torch or climbing_gear}
+        // Moving to a *wet*   region requires being in layer {none  or climbing_gear}
+        // Moving to a *narrow region requires being in layer {none  or torch}
+        return 0;
+    }
+};
+
+void day22(string inputfile, bool partone) {
+    vector<string> lines = get_lines(inputfile);
+    size_t depth = stoul(split(lines[0],':')[1]);
+    vector<string> coords = split(split(lines[1],':')[1],',');
+    size_t x = stoul(coords[0]), y = stoul(coords[1]);
+    cout << "Generating cave with depth = " << depth << endl;
+    cout << "Target is at (" << x << "," << y << ")\n";
+    if (partone) {
+        day22_cave cave(depth, x, y, x, y);
+        cout << "Risk level of cave: " << cave.risk_level() << endl;
+    } else {
+        day22_cave cave(depth, x+10, y+10, x, y);
+        cout << "Shortest path to the target (in minutes): " << cave.rescue_target() << endl;
+    }
+
+}
