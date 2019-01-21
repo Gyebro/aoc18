@@ -1806,6 +1806,262 @@ void day19(string inputfile, bool partone) {
     }
 }
 
+class day20_map {
+public:
+    enum class direction {
+        N, // +y
+        W, // -x
+        S, // -y
+        E  // +x
+    };
+    class node { // To represent rooms
+    public:
+        pair<size_t, size_t> coord;
+        bool doors[4]; // to represent edges, in NWSE order
+        node(pair<size_t, size_t> coordinate) : coord(coordinate) {
+            doors[0] = doors[1] = doors[2] = doors[3] = false; // No doors by default
+        }
+        node() {
+            coord = {0,0};
+            doors[0] = doors[1] = doors[2] = doors[3] = false; // No doors by default
+        }
+        bool operator==(const node& other) {
+            return (coord == other.coord &&
+                    doors[0] == other.doors[0] &&
+                    doors[1] == other.doors[1] &&
+                    doors[2] == other.doors[2] &&
+                    doors[3] == other.doors[3]);
+        }
+    };
+    vector<vector<node>> graph;
+    size_t W, H;
+    size_t xmin, xmax, ymin, ymax;
+    string regex;
+    size_t regex_ptr;
+    bool bfs_print;
+    pair<size_t, size_t> origin;
+    // Rooms = nodes
+    // Doors = edges
+    // Walls won't be modelled
+    node& get_node(pair<size_t, size_t> pos) {
+        return graph[pos.second][pos.first];
+    }
+    direction char_to_direction(const char c, bool opposite=false) {
+        switch (c) {
+            case 'N':
+                return opposite ? direction::S : direction::N;
+            case 'W':
+                return opposite ? direction::E : direction::W;
+            case 'S':
+                return opposite ? direction::N : direction::S;
+            case 'E':
+                return opposite ? direction::W : direction::E;
+            default:
+                return direction::N;
+        }
+    }
+    void step(pair<size_t, size_t>& pos, const char c) {
+        switch (c) {
+            case 'N':
+                pos.second++;
+                break;
+            case 'W':
+                pos.first--;
+                break;
+            case 'S':
+                pos.second--;
+                break;
+            case 'E':
+                pos.first++;
+                break;
+        }
+    }
+    vector<pair<size_t, size_t>> build_graph(size_t& depth, vector<pair<size_t, size_t>> front, size_t &c_ptr) {  // Breadth-first approach
+        bool tracking = true;
+        vector<pair<size_t, size_t>> start_front=front;
+        vector<pair<size_t, size_t>> result;
+        while (tracking) {
+            char c = regex[c_ptr];
+            switch (c) {
+                case 'N':
+                case 'S':
+                case 'E':
+                case 'W':
+                    for (pair<size_t, size_t> &pos : front) {
+                        get_node(pos).doors[(size_t) char_to_direction(c)] = true; // Forward edge
+                        step(pos, c);
+                        get_node(pos).doors[(size_t) char_to_direction(c, true)] = true; // Backward edge
+                        minmax(pos.first, xmin, xmax);
+                        minmax(pos.second, ymin, ymax);
+                        //cout << regex.substr(0, c_ptr+1) << endl;
+                        //print(pos);
+                    }
+                    c_ptr++;
+                    break;
+                case '(':
+                    // Branch off, recurse deeper
+                    depth++;
+                    c_ptr++;
+                    result = build_graph(depth, front, c_ptr);
+                    break;
+                case ')':
+                    // Save current front to result
+                    for (pair<size_t, size_t> pos : front) { result.push_back(pos); }
+                    //cout << regex.substr(0, c_ptr+1) << endl;
+                    // Done with branching, backtrack
+                    depth--;
+                    c_ptr++;
+                    tracking = false;
+                    break;
+                case '|':
+                    // New option
+                    c_ptr++;
+                    for (pair<size_t, size_t> pos : front) { result.push_back(pos); }
+                    front = start_front;
+                    break;
+                case '$':
+                    result = front;
+                    //cout << regex.substr(0, c_ptr+1) << endl;
+                    tracking = false;
+                    break;
+            }
+        }
+        return result;
+    }
+    day20_map(const string& regex_str) : regex(regex_str) {
+        // Count movements
+        size_t w = count(regex.begin(), regex.end(), 'W');
+        size_t e = count(regex.begin(), regex.end(), 'E');
+        size_t n = count(regex.begin(), regex.end(), 'N');
+        size_t s = count(regex.begin(), regex.end(), 'S');
+        W = w+e+3;
+        H = n+s+3;
+        origin = {w, s};
+        xmin = xmax = origin.first;
+        ymin = ymax = origin.second;
+        // Pre-allocate graph
+        cout << "Allocating map WxH:" << W << "x" << H << endl;
+        for (size_t y=0; y<H; y++) {
+            vector<node> row;
+            for (size_t x=0; x<W; x++) {
+                row.push_back(node(pair<int,int>(x,y)));
+            }
+            graph.push_back(row);
+        }
+        // Parse regex
+        if (regex[0] != '^') {
+            cout << "Error: invalid regex format!";
+        } else {
+            size_t depth = 0;
+            vector<pair<size_t, size_t>> front;
+            front.push_back(origin);
+            regex_ptr = 1;
+            build_graph(depth, front, regex_ptr);
+        }
+        print(origin);
+    }
+    size_t bfs_count_steps(bool print = false) {
+        vector<node> front;
+        front.push_back(get_node(origin));
+        vector<node> visited;
+        visited.push_back(get_node(origin));
+        size_t steps = 0;
+        bfs_print = print;
+        bfs(front, visited, steps);
+        return steps;
+    }
+    void print(pair<int,int> loc, vector<node> front = {}, vector<node> visited = {}) {
+        string row1;
+        string row2;
+        for (size_t x = xmin; x <= xmax; x++) {
+            cout << "##";
+        }
+        cout << "#\n";
+        for (size_t y = ymax; y >= ymin; y--) {
+            row1 = "#";
+            row2 = "#";
+            for (size_t x = xmin; x <= xmax; x++) {
+                node n = get_node({x, y});
+                if (contains(front, n)) {
+                    row1 += "*";
+                } else if (contains(visited, n)) {
+                    row1 += "v";
+                } else if (loc.first == x && loc.second == y) {
+                    row1 += "X";
+                } else if (origin.first == x && origin.second == y) {
+                    row1 += "o";
+                } else {
+                    row1 += ".";
+                }
+                if (n.doors[(size_t)direction::E]) {row1 += "|";} else { row1 += "#";}
+                if (n.doors[(size_t)direction::S]) {row2 += "-";} else { row2 += "#";}
+                row2 += "#";
+            }
+            row1 += "\n";
+            row2 += "\n";
+            cout << row1;
+            cout << row2;
+        }
+        cout << endl;
+    }
+    bool bfs(vector<node>& front, vector<node>& visited, size_t& steps) {
+        // For every element in the frontline nodes, enumerate compatible children
+        node t, neighbour;
+        vector<node> new_front;
+        for (size_t i=0; i<front.size(); i++) {
+            t = front[i];
+            for (size_t d=0; d<4; d++) {
+                if (t.doors[d]) {
+                    // This edge is open
+                    switch((direction)d) {
+                        case direction::N:
+                            neighbour = get_node({t.coord.first,   t.coord.second+1});
+                            break;
+                        case direction::W:
+                            neighbour = get_node({t.coord.first-1, t.coord.second});
+                            break;
+                        case direction::S:
+                            neighbour = get_node({t.coord.first,   t.coord.second-1});
+                            break;
+                        case direction::E:
+                            neighbour = get_node({t.coord.first+1, t.coord.second});
+                            break;
+                    }
+                    if (!contains(visited, neighbour)) {
+                        new_front.push_back(neighbour);
+                        visited.push_back(neighbour);
+                    }
+                } // End if edge exists
+            } // End for all edges
+        }
+        front = new_front;
+        if (front.empty()) return false;
+        steps++;
+        cout << "Steps: " << steps << ", visited: " << visited.size() << ", front: " << front.size() << endl;
+        if (bfs_print) print(t.coord, front, visited);
+        return bfs(front, visited, steps);
+    }
+};
+
+bool operator==(const day20_map::node& lhs, const day20_map::node& rhs) {
+    return (lhs.coord == rhs.coord &&
+            lhs.doors[0] == rhs.doors[0] &&
+            lhs.doors[1] == rhs.doors[1] &&
+            lhs.doors[2] == rhs.doors[2] &&
+            lhs.doors[3] == rhs.doors[3]);
+}
+
+void day20(string inputfile, bool partone) {
+    string regex = get_lines(inputfile)[0];
+    day20_map map(regex);
+    if (partone) {
+        size_t steps = map.bfs_count_steps();
+        cout << "Max steps to reach the furthest room (i.e. walk through the whole facility): " << steps << endl;
+    } else {
+
+    }
+}
+
 void day21(string inputfile, bool partone) {
     time_travel_device_emulator device(inputfile);
     if (partone) {

@@ -68,6 +68,15 @@ int main() {
     day19("day19.txt", false);
 #endif
 
+#ifdef DAY20
+    //day20("day20_test1.txt"); // Map: OK, BFS: OK
+    //day20("day20_test2.txt"); // Map: OK, BFS: OK
+    //day20("day20_test3.txt"); // Map: OK, BFS: OK
+    //day20("day20_test4.txt"); // Map: OK, BFS: OK
+    day20("day20.txt");
+    //day20("day20.txt", false);
+#endif
+
 #ifdef DAY21
     day21("day21.txt");
     day21("day21.txt", false);
