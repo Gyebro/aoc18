@@ -3,6 +3,7 @@
 #include "common.h"
 
 #include <vector>
+#include <queue>
 #include <fstream>
 #include <algorithm>
 #include <iostream>
@@ -2092,16 +2093,90 @@ public:
         wet,
         narrow
     };
+    enum class tool {
+        none,
+        torch,
+        climbing_gear
+    };
     class tile {
     public:
         type region_type;
         size_t geologic_index;
         size_t erosion_level;
     };
+    struct coordinate {
+        size_t t; // Tool {0,1 or 2} ~ layers of the map
+        size_t x, y; // Spatial coordinates
+    };
     size_t d, tx, ty;
+    size_t w, h;
     vector<vector<tile>> map;
-    vector<vector<vector<tile>>> map_layers; // 3 layers, one for each tool {torch, climbing_gear, none}
-    day22_cave(size_t depth, size_t W, size_t H, size_t target_x, size_t target_y) : d(depth), tx(target_x), ty(target_y) {
+    vector<coordinate> neighbours(size_t t, size_t x, size_t y) {
+        return neighbours({t, x, y});
+    }
+    vector<coordinate> neighbours(coordinate c) {
+        // Get tile from the map
+        tile t = map[c.y][c.x];
+        // Moving to a *rocky* region requires being in layer {torch or climbing_gear}
+        // Moving to a *wet*   region requires being in layer {none  or climbing_gear}
+        // Moving to a *narrow region requires being in layer {none  or torch}
+        vector<coordinate> n;
+        // Error checking
+        if ((size_t)t.region_type == c.t) {
+            cout << "Error: you are here with an incompatible tool!\n";
+            switch (t.region_type) {
+                case type::rocky:
+                    if (c.t == (size_t)tool::none) cout << "Error: you can't be in a rocky region with 'none' tool\n";
+                    break;
+                case type::wet:
+                    if (c.t == (size_t)tool::torch) cout << "Error: you can't be in a wet region with 'torch' tool\n";
+                    break;
+                case type::narrow:
+                    if (c.t == (size_t)tool::climbing_gear) cout << "Error: you can't be in a narrow region with 'climbing gear' tool\n";
+                    break;
+            }
+        }
+        // Add up to 6 neighbours
+        // Neighbour to other tool
+        coordinate nc;
+        nc.x = c.x;
+        nc.y = c.y;
+        switch (t.region_type) {
+            case type::rocky:
+                nc.t = (c.t == (size_t)tool::climbing_gear) ? (size_t)tool::torch : (size_t)tool::climbing_gear;
+                break;
+            case type::wet:
+                nc.t = (c.t == (size_t)tool::climbing_gear) ? (size_t)tool::none : (size_t)tool::climbing_gear;
+                break;
+            case type::narrow:
+                nc.t = (c.t == (size_t)tool::none) ? (size_t)tool::torch : (size_t)tool::none;
+                break;
+        }
+        n.push_back(nc);
+        // Left neighbour
+        if (c.x > 0) {
+            nc.x = c.x-1; nc.y = c.y; nc.t = c.t;
+            if ((size_t)map[nc.y][nc.x].region_type != (size_t)nc.t) { n.push_back(nc); } // Only add if tool is compatible
+        }
+        // Top neighbour
+        if (c.y > 0) {
+            nc.x = c.x; nc.y = c.y-1; nc.t = c.t;
+            if ((size_t)map[nc.y][nc.x].region_type != (size_t)nc.t) { n.push_back(nc); }
+        }
+        // Right neighbour
+        if (c.x < w) {
+            nc.x = c.x+1; nc.y = c.y; nc.t = c.t;
+            if ((size_t)map[nc.y][nc.x].region_type != (size_t)nc.t) { n.push_back(nc); }
+        }
+        // Bottom neighbour
+        if (c.y < h) {
+            nc.x = c.x; nc.y = c.y+1; nc.t = c.t;
+            if ((size_t)map[nc.y][nc.x].region_type != (size_t)nc.t) { n.push_back(nc); }
+        }
+        // Return up to 5 neighbours (1 tool change, max 4 spatial movement)
+        return n;
+    }
+    day22_cave(size_t depth, size_t W, size_t H, size_t target_x, size_t target_y) : d(depth), tx(target_x), ty(target_y), w(W), h(H) {
         // Generate cave up to W and H
         map.reserve(H+1);
         size_t gi, el;
@@ -2146,18 +2221,98 @@ public:
         }
         return risk;
     }
+    class node {
+    public:
+        size_t distance;
+        coordinate coord;
+        node() {
+            distance = 1000000000;
+            coord = {0,0,0};
+        }
+        node(size_t dist, coordinate c) : distance(dist), coord(c) {}
+    };
+    class node_meta {
+    public:
+        bool visited;
+        size_t distance;
+        node_meta () {
+            visited = false;
+            distance = 1000000000;
+        }
+    };
+    size_t distance(const coordinate c1, const coordinate c2) {
+        if (c1.t == c2.t) {
+            return 1;
+        } else {
+            return 7;
+        }
+    }
     size_t rescue_target() {
-        // Setup map layers
-        map_layers.reserve(3);
-        map_layers.push_back(map); // Torch
-        map_layers.push_back(map); // Climbing gear
-        map_layers.push_back(map); // None
-        // This is a directed graph, all layers are connected, moving between them takes 7 minutes
-        // Start is {0,0,0}, Target is {0,tx,ty}
-        // Moving to a *rocky* region requires being in layer {torch or climbing_gear}
-        // Moving to a *wet*   region requires being in layer {none  or climbing_gear}
-        // Moving to a *narrow region requires being in layer {none  or torch}
-        return 0;
+        // Setup node metadata
+        vector<vector<vector<node_meta>>> meta;
+        vector<node_meta> row;
+        row.resize(w+1);
+        vector<vector<node_meta>> layer;
+        layer.resize(h+1);
+        fill(layer.begin(), layer.end(), row);
+        meta.push_back(layer); // None
+        meta.push_back(layer); // Torch
+        meta.push_back(layer); // Climbing gear
+        // This is a weighted graph, all layers are connected, moving between them takes 7 minutes
+        // Start is {torch,0,0}, Target is {torch,tx,ty}
+        coordinate start =  {(size_t)tool::torch, 0, 0};
+        coordinate target = {(size_t)tool::torch, tx, ty};
+        meta[start.t][start.y][start.x].distance=0;
+        // Create a queue for Dijkstra's algorithm
+        auto compare = [](const node& L, const node& R) { return L.distance > R.distance;};
+        priority_queue<node, vector<node>, decltype(compare)> Q(compare);
+        node n;
+        cout << "Setting up queue with " << h*w*3 << " elements... ";
+        for (size_t y=0; y<=h; y++) {
+            for (size_t x=0; x<=w; x++) {
+                for (size_t t=0; t<3; t++) {
+                    if (x == start.x && y == start.y && t == start.t) {
+                        n.distance = 0;
+                    } else {
+                        n.distance = 1000000000;
+                    }
+                    n.coord = {t, x, y};
+                    if ((size_t)map[y][x].region_type != t) { // Only push valid nodes!
+                        Q.push(n);
+                    }
+                }
+            }
+        }
+        cout << " Done!\n";
+        // Dijkstra with lazy deletion
+        while (!Q.empty()) {
+            // Extract and remove node with minimum distance
+            node n = Q.top();
+            Q.pop();
+            if (meta[n.coord.t][n.coord.y][n.coord.x].visited) {
+                // This is a copy of a node with higher distance, lazy deletion by ignoring this element
+            } else {
+                // Terminate if we arrive
+                if (n.coord.x == target.x && n.coord.y == target.y && n.coord.t == target.t) {
+                    return meta[target.t][target.y][target.x].distance;
+                }
+                // Set the current node visited
+                meta[n.coord.t][n.coord.y][n.coord.x].visited = true;
+                // For every neighbour of n
+                for (coordinate &c : neighbours(n.coord)) {
+                    if (!meta[c.t][c.y][c.x].visited) {
+                        size_t new_dist = n.distance + distance(c, n.coord);
+                        if (new_dist < meta[c.t][c.y][c.x].distance) {
+                            meta[c.t][c.y][c.x].distance = new_dist;
+                            // Instead of decrease-priority, push a copy with lower distance
+                            Q.push(node(new_dist, c));
+                        }
+                    }
+                }
+            }
+        }
+        cout << "No route to target found!\n";
+        return meta[target.t][target.y][target.x].distance;
     }
 };
 
@@ -2172,8 +2327,9 @@ void day22(string inputfile, bool partone) {
         day22_cave cave(depth, x, y, x, y);
         cout << "Risk level of cave: " << cave.risk_level() << endl;
     } else {
-        day22_cave cave(depth, x+10, y+10, x, y);
-        cout << "Shortest path to the target (in minutes): " << cave.rescue_target() << endl;
+        day22_cave cave(depth, x+50, y+50, x, y);
+        size_t shortest = cave.rescue_target();
+        cout << "Shortest path to the target (in minutes): " << shortest << endl;
     }
 
 }

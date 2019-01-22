@@ -83,8 +83,8 @@ int main() {
 #endif
 
 #ifdef DAY22
-    day22("day22.txt");
-    //day22("day22.txt", false);
+    //day22("day22.txt");
+    day22("day22.txt", false);
 #endif
 
     return 0;
