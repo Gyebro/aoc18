@@ -2331,5 +2331,159 @@ void day22(string inputfile, bool partone) {
         size_t shortest = cave.rescue_target();
         cout << "Shortest path to the target (in minutes): " << shortest << endl;
     }
+}
 
+class nanobot {
+public:
+    class coord {
+    public:
+        int x,y,z;
+        coord(const int x, const int y, const int z) : x(x), y(y), z(z) {}
+        coord() { coord(0,0,0); }
+    };
+    coord c;
+    size_t r;
+    nanobot(const int x, const int y, const int z, const size_t r) : c(x,y,z), r(r) {}
+    size_t dist(const nanobot& nb) const {
+        return abs(c.x-nb.c.x)+abs(c.y-nb.c.y)+abs(c.z-nb.c.z);
+    }
+    size_t dist(const coord p) const {
+        return abs(c.x-p.x)+abs(c.y-p.y)+abs(c.z-p.z);
+    }
+    bool is_in_range(const nanobot& nb) const {
+        return (dist(nb) <= r);
+    }
+    bool is_in_range(const coord p) const {
+        return (dist(p) <= r);
+    }
+};
+
+bool day23_box_search(const vector<nanobot>& nanobots, nanobot::coord& c0, int r, size_t current_max, size_t& new_max) {
+    //cout << "Box search at (" << c0.x << "," << c0.y << "," << c0.z << ") with r=" << r << endl;
+    vector<pair<nanobot::coord, size_t>> box;
+    // Set up the box corners
+    box.push_back({c0, current_max});
+    box.push_back({{c0.x+r, c0.y, c0.z}, 0});
+    box.push_back({{c0.x+r, c0.y, c0.z+r}, 0});
+    box.push_back({{c0.x+r, c0.y, c0.z-r}, 0});
+    box.push_back({{c0.x+r, c0.y+r, c0.z}, 0});
+    box.push_back({{c0.x+r, c0.y+r, c0.z+r}, 0});
+    box.push_back({{c0.x+r, c0.y+r, c0.z-r}, 0});
+    box.push_back({{c0.x+r, c0.y-r, c0.z}, 0});
+    box.push_back({{c0.x+r, c0.y-r, c0.z+r}, 0});
+    box.push_back({{c0.x+r, c0.y-r, c0.z-r}, 0});
+
+    box.push_back({{c0.x-r, c0.y, c0.z}, 0});
+    box.push_back({{c0.x-r, c0.y, c0.z+r}, 0});
+    box.push_back({{c0.x-r, c0.y, c0.z-r}, 0});
+    box.push_back({{c0.x-r, c0.y+r, c0.z}, 0});
+    box.push_back({{c0.x-r, c0.y+r, c0.z+r}, 0});
+    box.push_back({{c0.x-r, c0.y+r, c0.z-r}, 0});
+    box.push_back({{c0.x-r, c0.y-r, c0.z}, 0});
+    box.push_back({{c0.x-r, c0.y-r, c0.z+r}, 0});
+    box.push_back({{c0.x-r, c0.y-r, c0.z-r}, 0});
+
+    box.push_back({{c0.x, c0.y, c0.z+r}, 0});
+    box.push_back({{c0.x, c0.y, c0.z-r}, 0});
+    box.push_back({{c0.x, c0.y+r, c0.z}, 0});
+    box.push_back({{c0.x, c0.y+r, c0.z+r}, 0});
+    box.push_back({{c0.x, c0.y+r, c0.z-r}, 0});
+    box.push_back({{c0.x, c0.y-r, c0.z}, 0});
+    box.push_back({{c0.x, c0.y-r, c0.z+r}, 0});
+    box.push_back({{c0.x, c0.y-r, c0.z-r}, 0});
+    // Calculate nanobot counts for locations
+    for (size_t b=1; b<box.size(); b++) {
+        size_t bots_in_range = 0;
+        for (size_t i=0; i<nanobots.size(); i++) {
+            if (nanobots[i].is_in_range(box[b].first)) {
+                bots_in_range++;
+            }
+        }
+        box[b].second = bots_in_range;
+    }
+    // Sort boxes based on bots in range and break ties with manhattan distance to {0,0,0}
+    sort(box.begin(), box.end(),
+         [](const pair<nanobot::coord, size_t>& l, const pair<nanobot::coord, size_t>& r) {
+        if (l.second == r.second) {
+            size_t dl = abs(l.first.x)+abs(l.first.y)+abs(l.first.z);
+            size_t dr = abs(r.first.x)+abs(r.first.y)+abs(r.first.z);
+            return dl < dr;
+        } else {
+            return l.second > r.second;
+        }
+    });
+    new_max = box[0].second;
+    c0 = box[0].first;
+    return (new_max > current_max);
+}
+
+void day23_find_local_opt(const vector<nanobot>& nanobots, const nanobot::coord c, size_t in_range) {
+    bool converged = false;
+    size_t radius = 512*1048576;
+    nanobot::coord c0=c;
+    size_t new_max_bots;
+    size_t max_bots=in_range;
+    while (!converged) {
+        if (!day23_box_search(nanobots, c0, radius, max_bots, new_max_bots)) {
+            // Terminate if needed
+            if (radius == 1) converged = true;
+            // Reduce radius
+            radius = radius/2;
+        }
+        max_bots = new_max_bots;
+    }
+    cout << "Found local opt started from (" << c.x << "," << c.y << "," << c.z << ") finished at (";
+    cout << c0.x << "," << c0.y << "," << c0.z << ") with bots in range: " << new_max_bots << endl;
+    cout << "Manhattan distance is: " << abs(c0.x)+abs(c0.y)+abs(c0.z) << endl;
+}
+
+void day23(string inputfile, bool partone) {
+    vector<string> lines = get_lines(inputfile);
+    vector<string> parts, parts2;
+    // Format: pos=<x,y,z>, r=r
+    int x,y,z;
+    size_t r;
+    vector<nanobot> nanobots;
+    for (string& line : lines) {
+        parts = split(line, '>');
+        if (!parts.empty()) {
+            // Get radius
+            parts2 = split(parts[1], '=');
+            r = stoul(parts2[1]);
+            // Get coords
+            parts2 = split(parts[0], '<');
+            parts = split(parts2[1], ',');
+            x = stoi(parts[0]);
+            y = stoi(parts[1]);
+            z = stoi(parts[2]);
+            nanobots.push_back(nanobot(x,y,z,r));
+        }
+    }
+    cout << "Found " << nanobots.size() << " nanobots\n";
+    if (partone) {
+        nanobot strongest = *max_element(nanobots.begin(), nanobots.end(),
+        [](const nanobot& l, const nanobot& r){ return l.r < r.r; });
+        cout << "Strongest nanobot has r=" << strongest.r << endl;
+        size_t in_range = 0;
+        for (const nanobot& nb : nanobots) {
+            if (strongest.is_in_range(nb)) in_range++;
+        }
+        cout << "Nanobots in it's range: " << in_range << endl;
+    } else {
+        vector<pair<size_t, size_t>> rssi_on_bots;
+        size_t bots_that_reach_this_coord = 0;
+        for (size_t i=0; i<nanobots.size(); i++) {
+            bots_that_reach_this_coord = 0;
+            for (const nanobot& n : nanobots) {
+                if (n.is_in_range(nanobots[i])) bots_that_reach_this_coord++;
+            }
+            rssi_on_bots.push_back({i, bots_that_reach_this_coord});
+        }
+        sort(rssi_on_bots.begin(), rssi_on_bots.end(),
+                [](const pair<size_t, size_t>& l, const pair<size_t, size_t>& r) { return l.second > r.second; });
+        // Start exploring from the locaion which is seen from most bots
+        for (size_t i=0; i<3; i++) {
+            day23_find_local_opt(nanobots, nanobots[rssi_on_bots[i].first].c, rssi_on_bots[i].second);
+        }
+    }
 }
