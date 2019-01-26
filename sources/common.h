@@ -23,6 +23,8 @@ string string_union(const string& u, const string& v);
 
 vector<string> split(const string &s, char delim);
 
+string trim_spaces(const string s);
+
 //// Templates ////
 
 template <class U, class V>
@@ -73,6 +75,16 @@ template<class T>
 void minmax(const T& value, T& min, T& max) {
     if (value < min) min = value;
     if (value > max) max = value;
+}
+
+template<class T, class U>
+size_t find_idx(const T& container, const U& elem) {
+    return find(container.begin(), container.end(), elem)-container.begin();
+}
+
+template<class T, class U>
+size_t find_idx_array(const T& array, const U& elem) {
+    return find(begin(array), end(array), elem)-begin(array);
 }
 
 #endif //AOC18_COMMON_H

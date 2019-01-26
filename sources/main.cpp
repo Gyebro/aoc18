@@ -88,8 +88,14 @@ int main() {
 #endif
 
 #ifdef DAY23
-    //day23("day23.txt");
+    day23("day23.txt");
     day23("day23.txt", false);
+#endif
+
+#ifdef DAY24
+    //day24("day24_test.txt"); // Passed 5216
+    day24("day24.txt");
+    day24("day24.txt", false);
 #endif
 
     return 0;

@@ -19,6 +19,7 @@
 //#define DAY20
 //#define DAY21
 //#define DAY22
-#define DAY23
+//#define DAY23
+#define DAY24
 
 #endif //AOC18_CONFIG_H

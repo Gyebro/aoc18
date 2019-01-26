@@ -2481,9 +2481,290 @@ void day23(string inputfile, bool partone) {
         }
         sort(rssi_on_bots.begin(), rssi_on_bots.end(),
                 [](const pair<size_t, size_t>& l, const pair<size_t, size_t>& r) { return l.second > r.second; });
-        // Start exploring from the locaion which is seen from most bots
-        for (size_t i=0; i<3; i++) {
+        // Start exploring from the location which is seen from most bots
+        for (size_t i=0; i<1; i++) {
             day23_find_local_opt(nanobots, nanobots[rssi_on_bots[i].first].c, rssi_on_bots[i].second);
         }
     }
+}
+
+class cellgroup {
+public:
+    enum class damage {
+        slashing,
+        bludgeoning,
+        cold,
+        fire,
+        radiation,
+    };
+	static const string damage_strings[5];
+	static const size_t damage_types = 5;
+	static const string weakness_keyword;
+	static const string immunity_keyword;
+    bool infection;
+    size_t ID; // Unique key
+    size_t units;
+    size_t hp;
+	size_t atk;
+    damage atk_type;
+    size_t initiative;
+    bool immunities[damage_types];
+    bool weaknesses[damage_types];
+    size_t target_id;
+    cellgroup() {
+        units = 0;
+        hp = 0;
+        atk = 0;
+        initiative = 0;
+    }
+    void parse_weaknesses(string s) {
+        // string contains 'weak to A,B'
+        s = s.substr(weakness_keyword.size()+4);
+        vector<string> words = split(s, ',');
+        if (words.size() > 0) {
+            for (string word : words) { weaknesses[find_idx_array(damage_strings, trim_spaces(word))] = true; }
+        } else { weaknesses[find_idx_array(damage_strings, s)] = true; }
+    }
+    void parse_immunities(string s) {
+        // string contains 'immune to A,B'
+        s = s.substr(immunity_keyword.size()+4);
+        vector<string> words = split(s, ',');
+        if (words.size() > 0) {
+            for (string word : words) { immunities[find_idx_array(damage_strings, trim_spaces(word))] = true; }
+        } else { immunities[find_idx_array(damage_strings, s)] = true; }
+    }
+    cellgroup(string line, bool is_infection, size_t id) : infection(is_infection), ID(id) {
+        // Parse string of the following format
+        // U units each with H hit points [(weak/immune to A,B,C[;weak/immune to D,E])]
+        //  with an attack that does ATK ATK_TYPE damage at initiative I
+		vector<string> words = split(line, ' ');
+		for (size_t i=1; i<words.size()-1; i++) {
+			if (words[i] == "units") {
+				units = stoul(words[i-1]);
+			} else if (words[i] == "hit") {
+				hp = stoul(words[i-1]);
+			} else if (words[i] == "damage") {
+				atk = stoul(words[i-2]);
+				auto it = find(begin(damage_strings), end(damage_strings), words[i-1]);
+				atk_type = (damage)(it-begin(damage_strings));
+			} else if (words[i] == "initiative") {
+				initiative = stoul(words[i+1]);
+			}
+		}
+        for (size_t d = 0; d < damage_types; d++) {
+            weaknesses[d] = immunities[d] = false;
+        }
+        bool has_weaknesses = false;
+        bool has_immunities = false;
+        size_t brace_open = find_idx(line, '(');
+        size_t brace_close = find_idx(line, ')');
+        string damage_type_list = "";
+        if (brace_open < line.size()) {
+            damage_type_list = line.substr(brace_open+1, brace_close-brace_open-1);
+            has_weaknesses = contains(split(damage_type_list, ' '), weakness_keyword);
+            has_immunities = contains(split(damage_type_list, ' '), immunity_keyword);
+        }
+        if (has_weaknesses && has_immunities) {
+            // line contains (immune to A,B; weak to C), order can vary!
+            words = split(damage_type_list, ';');
+            if (words[0][0] == 'i') {
+                parse_immunities(words[0]);
+                parse_weaknesses(words[1]);
+            } else {
+                parse_weaknesses(words[0]);
+                parse_immunities(words[1]);
+            }
+        } else if (has_weaknesses) {
+            parse_weaknesses(damage_type_list);
+        } else if (has_immunities) {
+            parse_immunities(damage_type_list);
+        }
+        /* // Debug immunities and weaknesses
+        cout << "WI list: " << damage_type_list << endl;
+        cout << "   SBCFR\n";
+        cout << "W: ";
+        for (size_t i=0; i<5; i++) { cout << weaknesses[i]; } cout << endl;
+        cout << "I: ";
+        for (size_t i=0; i<5; i++) { cout << immunities[i]; } cout << endl;*/
+    }
+    size_t damage_versus(const cellgroup& target) const {
+        size_t mult = 1;
+        if (target.immunities[(size_t)atk_type]) {
+            mult = 0;
+        } else if (target.weaknesses[(size_t)atk_type]) {
+            mult = 2;
+        }
+        return atk * units * mult;
+    }
+    size_t effective_power() const {
+        return atk * units;
+    }
+    void take_damage(size_t dmg) {
+        // This group loses dmg/hp units
+        size_t units_lost = (dmg / hp);
+        if (units <= units_lost) { units = 0; }
+        else { units -= units_lost; }
+    }
+    void take_damage(size_t dmg, size_t& killed) {
+        // This group loses dmg/hp units
+        size_t units_lost = (dmg / hp);
+        if (units <= units_lost) { killed = units; units = 0; }
+        else { killed = units_lost; units -= units_lost; }
+    }
+    string group_name() const {
+        return infection ? ("INF"+to_string(ID)) : ("IS"+to_string(ID));
+    }
+};
+
+const string cellgroup::weakness_keyword = "weak";
+const string cellgroup::immunity_keyword = "immune";
+const string cellgroup::damage_strings[] = {
+        "slashing",
+        "bludgeoning",
+        "cold",
+        "fire",
+        "radiation"};
+
+size_t day24_determine_target(const vector<cellgroup>& c, const size_t idx, vector<size_t> targets, bool verbose = false) {
+    size_t potential_damage;
+    size_t max_potential_damage = 0;
+    size_t best_target = c.size(); // Invalid target
+    for (size_t i=0; i<c.size(); i++) {
+        // Look for non-self-class enemy which is not already targeted and alive
+        if (c[i].infection != c[idx].infection && !contains(targets, c[i].ID) && c[i].units > 0) {
+            potential_damage = c[idx].damage_versus(c[i]);
+            if (verbose) cout << "Group " << c[idx].group_name() << " would attack group " << c[i].group_name() << " (EP = " << c[i].effective_power() << ") for " << potential_damage << endl;
+            if (potential_damage > max_potential_damage) {
+                max_potential_damage = potential_damage;
+                best_target = i;
+            } else if (potential_damage == max_potential_damage) {
+                // Choose the target with the highest EffectivePower or in tie, Initiative
+                if (c[best_target].effective_power() == c[i].effective_power()) {
+                    // Decide based on initiative
+                    if (c[best_target].initiative < c[i].initiative) {
+                        best_target = i; // New target is i
+                    } // Else best_target stays the same
+                } else if (c[best_target].effective_power() < c[i].effective_power()) {
+                    best_target = i; // New target is i
+                } // Else best_target stays the same
+            }
+        }
+    }
+    if (best_target != c.size()) {
+        // Swap to ID
+        if (verbose) cout << "Best target for " << c[idx].group_name() << " is " << c[best_target].group_name() << endl;
+        best_target = c[best_target].ID;
+
+    }
+    return best_target;
+}
+
+bool day24_fight(vector<cellgroup>& c, size_t& is_units, size_t& inf_units, bool verbose = false) {
+    // [[ Target selection ]]
+    // Sort cellgroups based on effective power (units * atk)
+    sort(c.begin(), c.end(), [](const cellgroup& l, const cellgroup& r){
+        size_t epl = l.effective_power();
+        size_t epr = r.effective_power();
+        if (epl == epr) { return l.initiative > r.initiative; }
+        else {            return epl > epr; }
+    });
+    vector<size_t> targets;
+    for (size_t i=0; i<c.size(); i++) {
+        c[i].target_id = day24_determine_target(c, i, targets, verbose);
+        targets.push_back(c[i].target_id);
+    }
+    // [[ Attack phase ]]
+    // Sort cellgroups based on initiative, targets are invalid!
+    sort(c.begin(), c.end(), [](const cellgroup& l, const cellgroup& r){
+        return l.initiative > r.initiative;
+    });
+    size_t target_idx;
+    size_t units_lost;
+    size_t target_id;
+    for (size_t i=0; i<c.size(); i++) {
+        target_id = c[i].target_id;
+        if (c[i].units > 0 && target_id < c.size()) {
+            target_idx = find_if(c.begin(), c.end(), [&target_id](const cellgroup& cg) { return cg.ID == target_id; })-c.begin();
+            c[target_idx].take_damage( c[i].damage_versus(c[target_idx]), units_lost );
+            if (verbose) { cout << "Group " << c[i].group_name() << " hits group " << c[target_idx].group_name() << " for " <<
+                 c[i].damage_versus(c[target_idx]) << " damage, killing " << units_lost << " units\n"; }
+        }
+    }
+    // [[ Check battlefield ]]
+    is_units = 0;
+    inf_units = 0;
+    for (const cellgroup& cg : c) {
+        if (cg.infection) {
+            inf_units += cg.units;
+        } else {
+            is_units += cg.units;
+        }
+    }
+    if (verbose) {
+        cout << "Immune system:\n";
+        for (const cellgroup& cg : c) { if (!cg.infection) {cout << "Group " << cg.group_name() << " has " << cg.units << " units\n";} }
+        cout << "Infection:\n";
+        for (const cellgroup& cg : c) { if (cg.infection) {cout << "Group " << cg.group_name() << " has " << cg.units << " units\n";} }
+    }
+    if ((is_units == 0 || inf_units == 0)) cout << "Immune system: " << is_units << ", Infection: " << inf_units << endl;
+    return (is_units > 0 && inf_units > 0);
+}
+
+size_t day24_battle(vector<cellgroup> c, size_t is_boost = 0, bool verbose = false) {
+    // Add boost before battle
+    for (cellgroup& cg : c) {
+        if (!cg.infection) cg.atk += is_boost;
+    }
+    size_t inf_units, is_units;
+    size_t prev_inf_units=0, prev_is_units=0;
+    while (day24_fight(c, is_units, inf_units, verbose)) {
+        // The battle goes on
+        if (inf_units == prev_inf_units && is_units == prev_is_units) {
+            cout << "Battle stalled\n";
+            break;
+        }
+        prev_inf_units = inf_units;
+        prev_is_units = is_units;
+    }
+    return inf_units;
+}
+
+void day24(string inputfile, bool partone) {
+    vector<string> lines = get_lines(inputfile);
+    // Look for keywords {Immune, Infection}
+    bool is_infection = false;
+    string immune_keyword = "Immune";
+    string infect_keyword = "Infection:";
+    vector<cellgroup> cellgroups;
+    size_t id = 0;
+    for (string line : lines) {
+        if (contains(split(line, ' '), immune_keyword)) {
+            is_infection = false;
+        } else if (contains(split(line, ' '), infect_keyword)) {
+            is_infection = true;
+        } else if (split(line, ' ').size() > 2) {
+            cellgroups.push_back(cellgroup(line, is_infection, id));
+            id++;
+        }
+    }
+    // Battle
+    if (partone) {
+        day24_battle(cellgroups);
+    } else {
+        size_t is_boost = 1;
+        bool is_won = false;
+        while (!is_won) {
+            cout << "Executing battle immune system boost is: " << is_boost << endl;
+            // Run battle with immune system boost
+            size_t inf_units_left = day24_battle(cellgroups, is_boost);
+            // Post-battle stats
+            if (inf_units_left > 0) {
+                is_boost += 1 + inf_units_left / 5000;
+            } else {
+                is_won = true;
+            }
+        }
+        cout << "Minimum necessary immune system boost is: " << is_boost << endl;
+    }
+
 }
