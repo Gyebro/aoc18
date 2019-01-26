@@ -22,6 +22,11 @@ int main() {
     cout << day03("day03.txt", false) << endl;
 #endif
 
+#ifdef DAY04
+    day04("day04.txt");
+    day04("day04.txt", false);
+#endif
+
     // Days 4 to 12
 
 #ifdef DAY13

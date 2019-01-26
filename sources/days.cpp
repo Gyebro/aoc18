@@ -160,7 +160,184 @@ size_t day03(string inputfile, bool partone) {
     return result;
 }
 
-/// Days 04 to 12
+class day04_record {
+public:
+    enum class type {
+        begins,
+        wakes_up,
+        falls_asleep
+    };
+    size_t Y, M, D;
+    size_t h, m;
+    string note;
+    day04_record() {
+        Y=M=D=h=m=0;
+        note="empty";
+    }
+    day04_record(const string& line) {
+        // Format: [YYYY-MM-DD hh:mm] NOTE
+        vector<string> words;
+        words = split(line, ']');
+        note = words[1].substr(1);
+        Y = stoul(words[0].substr(1,4));
+        M = stoul(words[0].substr(6,2));
+        D = stoul(words[0].substr(9,2));
+        h = stoul(words[0].substr(12,2));
+        m = stoul(words[0].substr(15,2));
+    }
+    size_t get_min() const {
+        return m + h*60 + D*24*60 + M*31*24*60 + Y*366*31*24*60;
+    }
+    size_t get_guard_id() const {
+        vector<string> words = split(note, '#');
+        if (words.empty()) {
+            return -1;
+        } else {
+            return stoul(split(words[1],' ')[0]);
+        }
+    }
+    type get_type() const {
+        vector<string> words = split(note, ' ');
+        string keyw = "wakes";
+        if (contains(words, keyw )) { return type::wakes_up; }
+        keyw = "falls";
+        if (contains(words, keyw )) { return type::falls_asleep; }
+        keyw = "begins";
+        if (contains(words, keyw )) { return type::begins; }
+        else {
+            cout << "Error, invalid note!\n"; return type::wakes_up;
+        }
+    }
+};
+
+bool operator< (const day04_record& l, const day04_record& r) {
+    return l.get_min() < r.get_min();
+}
+
+void day04(string inputfile, bool partone) {
+    vector<string> lines = get_lines(inputfile);
+    vector<day04_record> records;
+    for (const string& line : lines) {
+        records.push_back(day04_record(line));
+    }
+    cout << "Found " << records.size() << " records\n";
+    sort(records.begin(), records.end());
+    cout << "Sorted in chronological order!\n";
+    size_t ID = 0;
+    vector<pair<size_t, vector<size_t>>> guard_table;
+    size_t gt_id = 0;
+    vector<size_t> empty_minute_table;
+    empty_minute_table.resize(60);
+    fill(empty_minute_table.begin(), empty_minute_table.end(), 0);
+    size_t i=0;
+    bool collecting = true;
+    while (collecting) {
+        if (i == records.size()) { break; }
+        if (records[i].get_type() != day04_record::type::begins) {
+            cout << "Error! Invalid record met, expected 'guard begins'\n";
+            break;
+        }
+        ID = records[i].get_guard_id();
+        // Check if this guard already has a minute table
+        if (guard_table.empty()) {
+            guard_table.push_back({ID, empty_minute_table});
+        }
+        bool guard_exists = false;
+        for (size_t m = 0; m < guard_table.size(); m++) {
+            if (guard_table[m].first == ID) {
+                gt_id = m;
+                guard_exists = true;
+            }
+        }
+        if (!guard_exists) {
+            // Insert an empty minute table for this guard
+            guard_table.push_back({ID, empty_minute_table});
+            gt_id = guard_table.size() - 1;
+        }
+        // Loop on the records until the next guard comes in or file ends
+        size_t asleep_at = 0;
+        size_t wakes_up = 0;
+        bool processing = true;
+        bool interval_open = false;
+        while (processing) {
+            i++;
+            if (i == records.size()) {
+                collecting = false;
+                break;
+            }
+            switch (records[i].get_type()) {
+                case day04_record::type::falls_asleep:
+                    asleep_at = records[i].m;
+                    interval_open = true;
+                    break;
+                case day04_record::type::wakes_up:
+                    wakes_up = records[i].m;
+                    interval_open = false;
+                    // Mark current span as asleep in minute_table
+                    for (size_t m = asleep_at; m < wakes_up; m++) {
+                        guard_table[gt_id].second[m]++;
+                    }
+                    break;
+                case day04_record::type::begins:
+                    // Finish previous interval if it wasn't closed
+                    if (interval_open) {
+                        cout << "Warning: Guard " << ID << " fell asleep at " << asleep_at << " but didn't wake up!";
+                        for (size_t m = asleep_at; m < 60; m++) {
+                            guard_table[gt_id].second[m]++;
+                        }
+                        interval_open = false;
+                    }
+                    processing = false;
+                    break;
+            }
+        }
+    }
+    size_t most_minutes = 0;     // Most minutes and its corresponding guard ID
+    size_t most_minutes_ID = 0;
+    size_t minutes_sum;
+    size_t out_best_minute, out_best_minute_amt; // Best minute and the amount of sleepy time in it
+    for (const pair<size_t, vector<size_t> >& gt : guard_table) {
+        minutes_sum = 0;
+        size_t best_minute = 0;
+        size_t best_minute_amt = 0;
+        for (size_t m=0; m<60; m++) {
+            minutes_sum += gt.second[m]; // Accumulate sum of guard
+            if (gt.second[m] > best_minute_amt) {
+                best_minute = m;
+                best_minute_amt = gt.second[m];
+            }
+        }
+        if (partone) {
+            if (minutes_sum > most_minutes) {
+                most_minutes = minutes_sum;
+                most_minutes_ID = gt.first;
+                out_best_minute = best_minute;
+                out_best_minute_amt = best_minute_amt;
+            }
+        } else {
+            if (best_minute_amt > most_minutes) {
+                most_minutes = best_minute_amt;
+                most_minutes_ID = gt.first;
+                out_best_minute = best_minute;
+                out_best_minute_amt = best_minute_amt;
+            }
+        }
+
+    }
+    if (partone) {
+        cout << "The guard with the most minutes asleep is ID: " << most_minutes_ID << " (mins: " << most_minutes << ")\n";
+        cout << "The best minute of his schedule is " << out_best_minute << " (occasions: " << out_best_minute_amt << ")\n";
+        cout << "Result: " << most_minutes_ID*out_best_minute << endl;
+    } else {
+        cout << "The guard with the most probable sleepy minute is ID: " << most_minutes_ID << "\n";
+        cout << "The best minute of his schedule is " << out_best_minute << " (occasions: " << out_best_minute_amt << ")\n";
+        cout << "Result: " << most_minutes_ID*out_best_minute << endl;
+    }
+}
+
+
+
+
 
 class day13_cart_and_tracks {
 private:
