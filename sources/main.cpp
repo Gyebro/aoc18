@@ -98,5 +98,9 @@ int main() {
     day24("day24.txt", false);
 #endif
 
+#ifdef DAY25
+    day25("day25.txt");
+#endif
+
     return 0;
 }

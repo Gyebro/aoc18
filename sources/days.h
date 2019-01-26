@@ -39,4 +39,6 @@ void day23(string inputfile, bool partone = true);
 
 void day24(string inputfile, bool partone = true);
 
+void day25(string inputfile);
+
 #endif //AOC18_DAYS_H

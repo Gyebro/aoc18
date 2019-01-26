@@ -2766,5 +2766,119 @@ void day24(string inputfile, bool partone) {
         }
         cout << "Minimum necessary immune system boost is: " << is_boost << endl;
     }
+}
 
+class spacetime_coord {
+public:
+    int x, y, z, t;
+    size_t con;
+    bool in_con;
+    bool checked;
+    spacetime_coord(int x, int y, int z, int t) : x(x), y(y), z(z), t(t) {
+        in_con = false;
+        checked = false;
+    }
+    spacetime_coord(const vector<string>& words) {
+        x = stoi(words[0]);
+        y = stoi(words[1]);
+        z = stoi(words[2]);
+        t = stoi(words[3]);
+        in_con = false;
+        checked = false;
+    }
+    spacetime_coord() {
+        x = y = z = t = 0;
+        in_con = false;
+        checked = false;
+    }
+    bool close_to(const spacetime_coord& other) const {
+        return (abs(x-other.x)+abs(y-other.y)+abs(z-other.z)+abs(t-other.t)) <= 3;
+    }
+};
+
+void day25(string inputfile) {
+    vector<string> lines = get_lines(inputfile);
+    vector<string> words;
+    vector<spacetime_coord> coords;
+    int xmin=0, xmax=0;    int ymin=0, ymax=0;
+    int zmin=0, zmax=0;    int tmin=0, tmax=0;
+    for (const string& line : lines) {
+        words = split(line, ',');
+        if (words.size() == 4) {
+            coords.emplace_back(spacetime_coord(words));
+            minmax(coords.back().x,xmin,xmax); minmax(coords.back().y,ymin,ymax);
+            minmax(coords.back().z,zmin,zmax); minmax(coords.back().t,tmin,tmax);
+        }
+    }
+    cout << "Found " << coords.size() << " spacetime coordinates\n";
+    cout << "Spacetime area covered by the coordinates: \n";
+    cout << "X: [" << xmin << ", " << xmax << "]\n";   cout << "Y: [" << ymin << ", " << ymax << "]\n";
+    cout << "Z: [" << zmin << ", " << zmax << "]\n";   cout << "T: [" << tmin << ", " << tmax << "]\n";
+    // Start looking up constellations
+    bool matching = true;
+    bool verbose = false;
+    size_t current;
+    vector<size_t> neighbours;
+    size_t constellations = 0;
+    vector<size_t> merge_list;
+    while (matching) {
+        // Select the next spacetime coord without constellation,
+        matching = false;
+        for (size_t i=0; i<coords.size(); i++) {
+            if (!coords[i].checked) {
+                matching = true;
+                current = i;
+                break;
+            }
+        }
+        if (matching) {
+            coords[current].checked = true;
+            neighbours.clear();
+            neighbours.push_back(current);
+            for (size_t i=0; i<coords.size(); i++) {
+                if (i != current && coords[i].close_to(coords[current])){ neighbours.push_back(i); }
+            }
+            // All 'neighbours' of current coord is found, check for existing constellation(s)
+            merge_list.clear();
+            for (size_t& idx : neighbours) {
+                if (coords[idx].in_con) {
+                    if (!contains(merge_list, coords[idx].con)) { merge_list.push_back(coords[idx].con); }
+                }
+            }
+            if (merge_list.empty()) {
+                constellations++;
+                if (verbose) cout << "New constellation C" << constellations << endl;
+                for (size_t& idx : neighbours) { coords[idx].con = constellations; coords[idx].in_con = true; }
+            } else {
+                size_t final_constellation = *min_element(merge_list.begin(), merge_list.end());
+                if (verbose) cout << "Merging new constellation and (" << merge_list.size()-1 << " others) into C" << final_constellation << endl;
+                for (size_t& idx : neighbours) { coords[idx].con = final_constellation; coords[idx].in_con = true; }
+                for (spacetime_coord& sc : coords) {
+                    if (sc.in_con && contains(merge_list, sc.con)) { sc.con = final_constellation; }
+                }
+            }
+        }
+    }
+    // Count constellations with more than 1 coords
+    vector<size_t> const_list;
+    for (const spacetime_coord& sc : coords) {
+        if (!sc.in_con || !sc.checked) {
+            cout << "Error: unclassified spacetime coord found!\n";
+        } else {
+            if (!contains(const_list, sc.con)) { const_list.push_back(sc.con); }
+        }
+    }
+    size_t lone_constellations = 0;
+    size_t cnt = 0;
+    for(size_t & con : const_list) {
+        cnt = 0;
+        for (const spacetime_coord& sc : coords) {
+            if (sc.con == con) cnt++;
+            if (cnt >= 2) { break; }
+        }
+        if (cnt == 1) lone_constellations++;
+    }
+    cout << "Number of constellations (including single-coord ones): " << const_list.size() << endl;
+    cout << "Single-coord constellations: " << lone_constellations << endl;
+    cout << "Number of constellations: " << const_list.size()-lone_constellations << endl;
 }
