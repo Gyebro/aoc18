@@ -27,6 +27,11 @@ int main() {
     day04("day04.txt", false);
 #endif
 
+#ifdef DAY05
+    day05("day05.txt");
+    day05("day05.txt", false);
+#endif
+
     // Days 4 to 12
 
 #ifdef DAY13

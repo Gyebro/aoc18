@@ -335,7 +335,56 @@ void day04(string inputfile, bool partone) {
     }
 }
 
+bool day05_react(char a, char b) {
+    if (a > b) {
+        return (a-b)==32;
+    } else {
+        return (b-a)==32;
+    }
+}
 
+size_t day05_react_polymer(string& polymer) {
+    size_t p = 0;
+    while (p < polymer.size()-1) {
+        // Check chars at p & p+1
+        if (day05_react(polymer[p], polymer[p+1])) {
+            // Keep the first (p-1) chars and chars from (p+2)
+            string left="", right="";
+            if (p > 0) left=polymer.substr(0, p);
+            if (p < polymer.size()-2) right=polymer.substr(p+2);
+            polymer = left + right;
+            if (p > 0) p--;
+        } else {
+            p++;
+        }
+    }
+    return polymer.size();
+}
+
+void day05(string inputfile, bool partone) {
+    string polymer = get_lines(inputfile)[0];
+    cout << "Polymer has initial length: " << polymer.size() << endl;
+    if (partone) {
+        day05_react_polymer(polymer);
+        cout << "Fully reacted polymer has length: " << polymer.size() << endl;
+    } else {
+        size_t shortest = polymer.length();
+        char problematic_type='A';
+        for (char type='A'; type<='Z'; type++) {
+            string polymer_copy = polymer;
+            // Remove the uppercase variant
+            polymer_copy.erase(remove(polymer_copy.begin(), polymer_copy.end(), type), polymer_copy.end());
+            // Remove the lowercase variant
+            polymer_copy.erase(remove(polymer_copy.begin(), polymer_copy.end(), tolower(type)), polymer_copy.end());
+            size_t length = day05_react_polymer(polymer_copy);
+            if (length < shortest) {
+                shortest = length;
+                problematic_type = type;
+            }
+        }
+        cout << "Shortest length " << shortest << " can be achieved by removing " << problematic_type << endl;
+    }
+}
 
 
 
