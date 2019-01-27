@@ -10,7 +10,8 @@
 //#define DAY03
 //#define DAY04
 //#define DAY05
-#define DAY06
+//#define DAY06
+#define DAY07
 // ...
 //#define DAY13
 //#define DAY14

@@ -21,6 +21,8 @@ void day05(string inputfile, bool partone = true);
 
 void day06(string inputfile, bool partone = true);
 
+void day07(string inputfile, bool partone = true);
+
 void day13(string inputfile, bool partone = true);
 
 void day14(string inputfile, bool partone = true);

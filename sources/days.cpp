@@ -512,9 +512,213 @@ void day06(string inputfile, bool partone) {
     }
 }
 
+class day07_step {
+public:
+    char key;
+    vector<char> prerequisites;
+    day07_step() {
+        key = 0;
+        prerequisites.resize(0);
+    }
+    day07_step(char key) : key(key) {
+        prerequisites.resize(0);
+    }
+    void add_prereq(const char step_key) {
+        prerequisites.push_back(step_key);
+    }
+};
 
+void day07_worker_summary(const vector<pair<size_t, char>>& workers) {
+    for (const pair<size_t, char>& worker : workers) {
+        if (worker.first == 0) {
+            cout << " idle worker\n";
+        } else {
+            cout << " worker with step " << worker.second << ", remaining time = " << worker.first << endl;
+        }
+    }
+}
 
+void day07(string inputfile, bool partone) {
+    vector<string> lines = get_lines(inputfile);
+    vector<string> words;
+    deque<day07_step> steps;
+    char step, prereq;
+    size_t task_idx; bool task_already_exists;
+    vector<char> step_keys;
+    for (const string line : lines) {
+        words = split(line, ' ');
+        if (words.size() == 10) {
+            // Step PREREQ must be finished before step TASK can begin.
+            step   = words[7][0];
+            prereq = words[1][0];
+            if (!contains(step_keys, step))   { step_keys.push_back(step); }
+            if (!contains(step_keys, prereq)) { step_keys.push_back(prereq); }
+            task_already_exists = false;
+            for (size_t i=0; i<steps.size(); i++) {
+                if (steps[i].key == step) {
+                    task_already_exists = true;
+                    task_idx = i;
+                }
+            }
+            if (!task_already_exists) {
+                steps.push_back(day07_step(step));
+                task_idx = steps.size()-1;
+            }
+            steps[task_idx].add_prereq(prereq);
+        }
+    }
+    cout << "Found " << steps.size() << " steps\n";
+    cout << "There are " << step_keys.size() << " different step keys\n";
+    // Add the missing step (s)
+    for (const char key : step_keys) {
+        bool found = false;
+        for (const day07_step& s : steps) {
+            if (s.key == key) found = true;
+        }
+        if (!found) {
+            steps.push_back(day07_step(key));
+            cout << "Added step " << key << " with 0 pre-requisites\n";
+        }
+    }
+    if (partone) {
+        string order = "";
+        bool finished = false;
+        while (!finished) {
+            // Sort steps based on the number of pre-requirements
+            sort(steps.begin(), steps.end(), [](const day07_step& l, const day07_step& r) {
+                if (l.prerequisites.size() == r.prerequisites.size()) {
+                    return l.key < r.key;
+                } else {
+                    return l.prerequisites.size() < r.prerequisites.size();
+                }
+            });
+            //cout << "Step " << steps[0].key << " has " << steps[0].prerequisites.size() << " pre-requisites\n";
+            if (steps[0].prerequisites.size() == 0) {
+                // This step will be completed
+                step = steps[0].key;
+                order += step;
+                // Remove from other's pre-reqs
+                for (size_t i=1; i<steps.size(); i++) {
+                    if (contains(steps[i].prerequisites, step)) {
+                        steps[i].prerequisites.erase(
+                                remove(steps[i].prerequisites.begin(), steps[i].prerequisites.end(), step),
+                                steps[i].prerequisites.end()
+                        );
+                    }
+                }
+                // Finally remove this steps from the collection
+                steps.pop_front();
+            } else {
+                cout << "Error, cannot continue, no unlocked steps left\n";
+                finished = true;
+            }
+            if (steps.empty()) finished = true;
+        }
+        cout << "Order of steps: " << order << endl;
+    } else {
+        size_t workers = 5;
+        size_t time = 0;
+        size_t time_left = 0;
+        const size_t no_job = 0;
+        vector<pair<size_t, char>> workers_status;
+        workers_status.resize(workers);
+        fill(workers_status.begin(), workers_status.end(), pair<size_t, char>(0, no_job));
+        bool assembling = true;
+        deque<char> step_queue;
+        size_t dt;
+        while (assembling) {
+            // Enqueue all unlocked jobs at this time
+            sort(steps.begin(), steps.end(), [](const day07_step& l, const day07_step& r) {
+                if (l.prerequisites.size() == r.prerequisites.size()) {
+                    return l.key < r.key;
+                } else {
+                    return l.prerequisites.size() < r.prerequisites.size();
+                }
+            });
+            for (size_t u=0; u<steps.size(); u++) {
+                if (steps[u].prerequisites.size() == 0) step_queue.push_back(steps[u].key);
+            }
+            if (!step_queue.empty()) {
+                cout << "Available steps: ";
+                for (char k : step_queue) cout << k;
+                cout << endl;
+            }
+            // If there are unlocked tasks, assign them to free workers
+            while (!step_queue.empty()) {
+                sort(workers_status.begin(), workers_status.end(),
+                     [](const pair<size_t, char>& l, const pair<size_t, char>& r) {
+                         return l.first < r.first;
+                     });
+                dt = workers_status[0].first; time += dt;
+                for (pair<size_t, char>&w : workers_status) {
+                    if (w.first > dt) w.first -= dt;
+                    else w.first = 0;
+                }
+                if (workers_status[0].second != no_job) { // If that worker had a task, mark it finished
+                    step = workers_status[0].second;
+                    workers_status[0].second = no_job;
+                    cout << "Step " << step << " has been finished at time = " << time << endl;
+                    //day07_worker_summary(workers_status);
+                    // Remove this step from other steps' pre-reqs
+                    for (size_t i=0; i<steps.size(); i++) {
+                        if (contains(steps[i].prerequisites, step)) {
+                            steps[i].prerequisites.erase(
+                                    remove(steps[i].prerequisites.begin(), steps[i].prerequisites.end(), step),
+                                    steps[i].prerequisites.end()
+                            );
+                        }
+                    }
+                }
+                step = step_queue.front();
+                cout << "Worker have been assigned with step " << step << " at time = " << time << endl;
+                workers_status[0].first = (size_t)(60 + step + 1 - 'A');
+                workers_status[0].second = step;
+                //day07_worker_summary(workers_status);
+                step_queue.pop_front();
+                steps.pop_front();
+            }
+            // Finish the next upcoming step (TODO: clean up copy-paste)
+            sort(workers_status.begin(), workers_status.end(),
+                 [](const pair<size_t, char>& l, const pair<size_t, char>& r) {
+                     if (l.first == 0) {
+                         return false; // Sort free workers to the end
+                     } else if (r.first == 0) {
+                         return true;
+                     }
+                     return l.first < r.first;
+                 });
+            dt = workers_status[0].first; time += dt;
+            for (pair<size_t, char>&w : workers_status) {
+                    if (w.first > dt) w.first -= dt;
+                    else w.first = 0;
+                }
+            if (workers_status[0].second != no_job) { // If that worker had a task, mark it finished
+                step = workers_status[0].second;
+                workers_status[0].second = no_job;
+                cout << "Step " << step << " has been finished at time = " << time << endl;
+                //day07_worker_summary(workers_status);
+                // Remove this step from other steps' pre-reqs
+                for (size_t i=0; i<steps.size(); i++) {
+                    if (contains(steps[i].prerequisites, step)) {
+                        steps[i].prerequisites.erase(
+                                remove(steps[i].prerequisites.begin(), steps[i].prerequisites.end(), step),
+                                steps[i].prerequisites.end()
+                        );
+                    }
+                }
+            }
+            // Terminate condition, all workers are free again
+            time_left = 0;
+            for (const pair<size_t, char>&w : workers_status) { time_left += w.first; }
+            if (time_left == 0 && steps.size() == 0) {
+                cout << "Assembly finished\n"; assembling = false;
+            }
+        }
+        cout << "Required time is " << time << endl;
+    }
+}
 
+#ifndef DAY07
 
 class day13_cart_and_tracks {
 private:
@@ -3236,3 +3440,5 @@ void day25(string inputfile) {
     cout << "Single-coord constellations: " << lone_constellations << endl;
     cout << "Number of constellations: " << const_list.size()-lone_constellations << endl;
 }
+
+#endif
