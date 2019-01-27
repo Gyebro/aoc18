@@ -386,6 +386,134 @@ void day05(string inputfile, bool partone) {
     }
 }
 
+void day06(string inputfile, bool partone) {
+    vector<string> lines = get_lines(inputfile);
+    vector<pair<size_t, size_t>> coords;
+    vector<string> words;
+    size_t xmin = 10000, xmax = 0;
+    size_t ymin = 10000, ymax = 0;
+    for (string& line : lines) {
+        words = split(line, ',');
+        if (words.size() == 2) {
+            coords.push_back({stoul(words[0]), stoul(words[1])});
+            minmax(coords.back().first, xmin, xmax);
+            minmax(coords.back().second, ymin, ymax);
+        }
+    }
+    cout << "Found " << coords.size() << " coordinates\n";
+    cout << "Area bounds: X=(" << xmin << "," << xmax << "), Y=(" << ymin << "," << ymax << ")\n";
+    // Create a map, padding bounds by 1 extra unit along x and y
+    xmin--;
+    xmax++;
+    ymin--;
+    ymax++;
+    size_t invalid_key = coords.size();
+    vector<vector<size_t>> map;
+    vector<size_t> row;
+    row.resize(xmax - xmin + 1);
+    fill(row.begin(), row.end(), invalid_key);
+    map.resize(ymax - ymin + 1);
+    fill(map.begin(), map.end(), row);
+    size_t x, y;
+    if (partone) {
+        // Tag map cells with the closest coordinate's index
+        size_t lowest_dist, dist;
+        size_t closest_coord = invalid_key;
+        bool has_closest;
+        for (size_t j = 0; j < map.size(); j++) {
+            for (size_t i = 0; i < row.size(); i++) {
+                x = xmin + i;
+                y = ymin + j;
+                // Find closest coordinate to (x,y)
+                lowest_dist = 2 * (xmax + ymax); // Large value
+                has_closest = false;
+                for (size_t c = 0; c < coords.size(); c++) {
+                    dist = abs((int) coords[c].first - (int) x) +
+                           (size_t) abs((int) coords[c].second - (int) y); // 2D Manhattan dist
+                    if (dist < lowest_dist) {
+                        closest_coord = c;
+                        lowest_dist = dist;
+                        has_closest = true;
+                    }
+                }
+                // Check for tie with another coord
+                for (size_t c = 0; c < coords.size(); c++) {
+                    dist = abs((int) coords[c].first - (int) x) +
+                           (size_t) abs((int) coords[c].second - (int) y); // 2D Manhattan dist
+                    if (dist == lowest_dist && c != closest_coord) {
+                        // Another coord found with the lowest distance, invalidate has_closest
+                        has_closest = false;
+                    }
+                }
+                if (has_closest) {
+                    map[j][i] = closest_coord;
+                }
+            }
+        }
+        // Map is now marked with the index of closest coord or 'invalid_key' meaning ties
+        vector<pair<size_t, bool> > area_counts; // 'count' and 'is_infinite'
+        area_counts.resize(coords.size());
+        fill(area_counts.begin(), area_counts.end(), pair<size_t, bool>(0, false));
+        for (size_t j = 0; j < map.size(); j++) {
+            for (size_t i = 0; i < row.size(); i++) {
+                if (map[j][i] < invalid_key) {
+                    // Set infinite flag on edges
+                    if (i == 0 || j == 0 || i == map.size() - 1 || j == row.size() - 1) {
+                        area_counts[map[j][i]].second = true; // This area is infinite
+                    }
+                    // Add +1 area to the id
+                    area_counts[map[j][i]].first++;
+                }
+            }
+        }
+        // Sort area_counts in descending order, non-infinite first
+        sort(area_counts.begin(), area_counts.end(),
+             [](const pair<size_t, bool> &l, const pair<size_t, bool> &r) {
+                 if (l.second == r.second) {
+                     return l.first > r.first;
+                 } else {
+                     return !l.second;
+                 }
+             });
+        cout << "Largest non-infinite area is " << area_counts[0].first << " units.\n";
+    } else {
+        // Part two: tag map cells if they are within D distance to every coord
+        size_t D = 10000;
+        size_t dist;
+        size_t valid_key = 0;
+        for (size_t j = 0; j < map.size(); j++) {
+            for (size_t i = 0; i < row.size(); i++) {
+                x = xmin + i;
+                y = ymin + j;
+                // Check if every coord is within D to coordinate to (x,y)
+                bool ok = true;
+                dist = 0;
+                for (const pair<size_t, size_t>& coord : coords) {
+                    dist += abs((int)coord.first - (int)x) + abs((int)coord.second - (int)y);
+                    if (dist >= D) {
+                        ok = false;
+                        break;
+                    }
+                }
+                // If ok flag is still on, tag this map cell
+                if (ok) {
+                    map[j][i]=valid_key;
+                }
+            }
+        }
+        // Count valid locations
+        size_t valid_area = 0;
+        for (size_t j = 0; j < map.size(); j++) {
+            for (size_t i = 0; i < row.size(); i++) {
+                if (map[j][i] == valid_key) { valid_area++; }
+            }
+        }
+        cout << "Area with less than D units to every coordinate: " << valid_area << endl;
+    }
+}
+
+
+
 
 
 class day13_cart_and_tracks {
