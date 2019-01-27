@@ -718,7 +718,80 @@ void day07(string inputfile, bool partone) {
     }
 }
 
-#ifndef DAY07
+class day08_node {
+public:
+    size_t ch;
+    size_t m;
+    vector<day08_node> children;
+    vector<size_t> meta;
+};
+
+day08_node day08_create_node(const vector<size_t>& data, size_t& p) {
+    day08_node node;
+    node.ch = data[p]; p++;
+    node.m  = data[p]; p++;
+    for (size_t i=0; i<node.ch; i++) {
+        node.children.emplace_back(day08_create_node(data, p));
+    }
+    for (size_t i=0; i<node.m; i++) {
+        node.meta.push_back(data[p]); p++;
+    }
+    return node;
+}
+
+size_t day08_collect_meta(const day08_node& node) {
+    size_t meta_sum = 0;
+    for (size_t i=0; i<node.ch; i++) {
+        meta_sum += day08_collect_meta(node.children[i]);
+    }
+    for (size_t i=0; i<node.m; i++) {
+        meta_sum += node.meta[i];
+    }
+    return meta_sum;
+}
+
+size_t day08_calculate_value(const day08_node& node) {
+    size_t val = 0;
+    size_t idx;
+    if (node.ch == 0) {
+        for (size_t i=0; i<node.m; i++) {
+            val += node.meta[i];
+        }
+    } else {
+        // Metadata entries are references to child nodes.
+        for (size_t i=0; i<node.m; i++) {
+            idx = node.meta[i];
+            if (idx == 0 || idx > node.ch) {
+                // Skip this index
+            } else {
+                val += day08_calculate_value(node.children[idx-1]);
+            }
+        }
+    }
+    return val;
+}
+
+void day08(string inputfile, bool partone) {
+    string line = get_lines(inputfile)[0];
+    vector<string> words = split(line, ' ');
+    vector<size_t> data;
+    data.reserve(words.size());
+    for (string& word : words) {
+        data.push_back(stoul(word));
+    }
+    cout << "Input contains " << data.size() << " blocks\n";
+    size_t p = 0;
+    day08_node root = day08_create_node(data, p);
+    if (partone) {
+        size_t meta_sum = day08_collect_meta(root);
+        cout << "Sum of all metadata entries: " << meta_sum << endl;
+    } else {
+        size_t value = day08_calculate_value(root);
+        cout << "The value of the root node: " << value << endl;
+    }
+}
+
+#ifndef DAY08
 
 class day13_cart_and_tracks {
 private:

@@ -42,6 +42,13 @@ int main() {
     day07("day07.txt", false);
 #endif
 
+#ifdef DAY08
+    //day08("day08_test.txt"); // Passed: 138
+    day08("day08.txt");
+    //day08("day08_test.txt", false); // Passed: 66
+    day08("day08.txt", false);
+#endif
+
     // Days 4 to 12
 
 #ifdef DAY13
