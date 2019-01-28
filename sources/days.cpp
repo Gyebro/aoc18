@@ -905,7 +905,105 @@ void day09(string inputfile, bool partone) {
     }
 }
 
-#ifndef DAY09
+class day10_particle {
+public:
+    int x, y;
+    int vx, vy;
+    day10_particle() {
+        x = y = vx = vy = 0;
+    }
+    day10_particle(int x, int y, int vx, int vy) : x(x), y(y), vx(vx), vy(vy) {}
+    day10_particle(const string line) {
+        vector<string> words = split(line, '<');
+        vector<string> position = split(split(words[1], '>')[0],',');
+        vector<string> velocity = split(split(words[2], '>')[0],',');
+        x = stoi(position[0]),
+        y = stoi(position[1]),
+        vx = stoi(velocity[0]),
+        vy = stoi(velocity[1]);
+    }
+    void tick() {
+        x += vx;
+        y += vy;
+    }
+    void tick_back() {
+        x -= vx;
+        y -= vy;
+    }
+};
+
+void day10_print_particles(vector<day10_particle>& particles, int xmin, int xmax, int ymin, int ymax) {
+    size_t W = xmax-xmin+1;
+    size_t H = ymax-ymin+1;
+    cout << "Sky size: " << W << "x" << H << endl;
+    string row; row.resize(W);
+    fill(row.begin(), row.end(), ' ');
+    vector<string> sky; sky.resize(H);
+    fill(sky.begin(), sky.end(), row);
+    size_t i,j;
+    for (const day10_particle& p : particles) {
+        i = p.x-xmin;
+        j = p.y-ymin;
+        sky[j][i]= '#';
+    }
+    for (string& r : sky) {
+        cout << r << endl;
+    }
+}
+
+void day10(string inputfile, bool partone) {
+    vector<string> lines = get_lines(inputfile);
+    vector<day10_particle> particles;
+    for (string& line : lines) {
+        if (line.size() > 2) particles.emplace_back(day10_particle(line));
+    }
+    cout << "Found " << particles.size() << " particles\n";
+    if (partone) {
+        bool converged = false;
+        int xmin, xmax, ymin, ymax;
+        size_t xwidth = 0, ywidth = 0, prev_xw = 0, prev_yw = 0;
+        size_t time = 0;
+        while (!converged) {
+            // Calculate bounding box of particles
+            xmin = xmax = particles[0].x;
+            ymin = ymax = particles[0].y;
+            for (day10_particle& p : particles) {
+                minmax(p.x, xmin, xmax);
+                minmax(p.y, ymin, ymax);
+            }
+            xwidth = (size_t)(xmax-xmin);
+            ywidth = (size_t)(ymax-ymin);
+            if (prev_xw == 0) {prev_xw = xwidth; prev_yw = ywidth;} // Init prev area
+            if (xwidth > prev_xw || ywidth > prev_yw) {
+                converged = true;
+                // But we need to go back to the previous time step
+                xmin = xmax = particles[0].x;
+                ymin = ymax = particles[0].y;
+                time--;
+                for (day10_particle& p : particles) {
+                    p.tick_back();
+                    minmax(p.x, xmin, xmax);
+                    minmax(p.y, ymin, ymax);
+                }
+            } else {
+                prev_xw = xwidth;
+                prev_yw = ywidth;
+                time++;
+                for (day10_particle& p : particles) {
+                    p.tick();
+                }
+            }
+        }
+        cout << "Converged at time " << time << " to area (" << xmin << "," << xmax << ")x("
+                << ymin << "," << ymax << ")" << endl;
+        day10_print_particles(particles, xmin, xmax, ymin, ymax);
+    } else {
+
+    }
+
+}
+
+#ifndef DAY10
 
 class day13_cart_and_tracks {
 private:
