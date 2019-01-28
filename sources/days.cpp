@@ -1052,8 +1052,10 @@ pair<size_t, size_t> day11_find_3x3_max(vector<vector<fuel_cell>>& grid) {
 pair<size_t, size_t> day11_find_nxn_max(vector<vector<fuel_cell>>& grid, size_t& out_blk_size) {
     int max_block = -10000;
     int block = 0;
+    size_t max_not_changed = 0;
     pair<size_t, size_t> max_block_loc;
     for (size_t blk=1; blk<=300; blk++) {
+        bool max_changed = false;
         for (size_t y=1; y<=300-blk+1; y++) {
             for (size_t x=1; x<=300-blk+1; x++) {
                 block = 0;
@@ -1066,10 +1068,15 @@ pair<size_t, size_t> day11_find_nxn_max(vector<vector<fuel_cell>>& grid, size_t&
                     max_block = block;
                     max_block_loc = {x, y};
                     out_blk_size = blk;
+                    max_changed = true;
                 }
             }
         }
         cout << "Max block = " << max_block_loc.first << "," << max_block_loc.second << "," << blk << " has fuel sum = " << max_block << endl;
+        if (!max_changed) max_not_changed++;
+        if (max_not_changed == 9) {
+            break;
+        }
     }
     return max_block_loc;
 }
