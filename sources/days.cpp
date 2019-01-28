@@ -1096,7 +1096,102 @@ void day11(string inputfile, bool partone) {
     }
 }
 
-#ifndef DAY11
+class day12_pattern {
+public:
+    string from;
+    char to;
+    day12_pattern(const string &from, const string &to) : from(from), to(to[0]) {}
+};
+
+string day12_single_generation(string plants, const vector<day12_pattern>& patterns, size_t& right_shift) {
+    // Shift the string right if the first character is a #
+    if        (plants[0] == '#') {
+        plants = "...."+plants; right_shift += 4;
+    } else if (plants[1] == '#') {
+        plants = "..."+plants; right_shift += 3;
+    } else if (plants[2] == '#') {
+        plants = ".."+plants; right_shift += 2;
+    }
+    // Also pad on the end if needed
+    if      (plants[plants.size()-1] == '#') { plants += "...."; }
+    else if (plants[plants.size()-2] == '#') { plants += "..."; }
+    else if (plants[plants.size()-3] == '#') { plants += ".."; }
+    // Go through the plants string and check patterns
+    string new_plants = plants;
+    fill(new_plants.begin(), new_plants.end(), '.');
+    string sub;
+    for (size_t i=0; i<plants.size()-4; i++) {
+        sub = plants.substr(i,5);
+        for (const day12_pattern& p : patterns) {
+            if (p.from == sub) {
+                new_plants[i+2] = p.to;
+                break;
+            }
+        }
+    }
+    return new_plants;
+}
+
+int day12_checksum(const string plants, size_t right_shift) {
+    int checksum = 0;
+    for (int i=0; i<plants.size(); i++) {
+        if (plants[i] == '#') {
+            checksum += i-right_shift;
+        }
+    }
+    return checksum;
+}
+
+int day12_generate(string initial, const vector<day12_pattern>& patterns, size_t generations) {
+    size_t right_shift = 0; // Shows the index shift in the string
+    string plants = initial;
+    for (size_t g=0; g<generations; g++) {
+        plants = day12_single_generation(plants, patterns, right_shift);
+    }
+    return day12_checksum(plants, right_shift);
+}
+
+unsigned long long day12_generate_growth(string initial, const vector<day12_pattern>& patterns, size_t generations) {
+    size_t right_shift = 0; // Shows the index shift in the string
+    string plants = initial;
+    size_t checksum, prev_checksum=0;
+    size_t growth, prev_growth=0;
+    size_t g;
+    size_t gskip = 100;
+    for (g=1; g<generations; g++) {
+        plants = day12_single_generation(plants, patterns, right_shift);
+        checksum = day12_checksum(plants, right_shift);
+        growth = checksum-prev_checksum;
+        if (g >= gskip && growth == prev_growth) {
+            cout << "Converged at g=" <<g << " with constant growth of " << growth << ", current chk = " << checksum << "\n";
+            break;
+        }
+        prev_checksum = checksum;
+        prev_growth = growth;
+    }
+    return checksum+(generations-g)*growth;
+}
+
+void day12(string inputfile, bool partone) {
+    vector<string> lines = get_lines(inputfile);
+    string initial_state = split(lines[0], ' ')[2];
+    vector<day12_pattern> patterns;
+    vector<string> words;
+    for (size_t l=2; l<lines.size(); l++) {
+        words = split(lines[l],' ');
+        if (words.size() == 3) {
+            patterns.push_back(day12_pattern(words[0],words[2]));
+        }
+    }
+    cout << "Found " << patterns.size() << " generation patterns\n";
+    if (partone) {
+        int sum = day12_generate(initial_state, patterns, 20);
+        cout << "The checksum after 20 generations: " << sum << endl;
+    } else {
+        size_t sum = day12_generate_growth(initial_state, patterns, 50000000000);
+        cout << "The checksum after 50000000000 generations: " << sum << endl;
+    }
+}
 
 class day13_cart_and_tracks {
 private:
@@ -3818,5 +3913,3 @@ void day25(string inputfile) {
     cout << "Single-coord constellations: " << lone_constellations << endl;
     cout << "Number of constellations: " << const_list.size()-lone_constellations << endl;
 }
-
-#endif
