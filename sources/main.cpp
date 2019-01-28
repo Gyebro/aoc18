@@ -49,6 +49,12 @@ int main() {
     day08("day08.txt", false);
 #endif
 
+#ifdef DAY09
+    // day09("day09_tests.txt"); All five tests: Passed
+    day09("day09.txt");
+    day09("day09.txt", false);
+#endif
+
     // Days 4 to 12
 
 #ifdef DAY13

@@ -791,7 +791,121 @@ void day08(string inputfile, bool partone) {
     }
 }
 
-#ifndef DAY08
+class marble {
+public:
+    marble * prev;
+    marble * next;
+    size_t value;
+};
+
+void day09_print_marbles(marble* current) {
+    marble* p = current;
+    cout << "Marbles: ";
+    do {
+        p = p->next;
+        cout << p->value << " ";
+    } while (p != current);
+    cout << endl;
+}
+
+void day09_insert_after(marble* pos, marble* m) {
+    // Insert m as pos->next
+    m->prev = pos;
+    m->next = pos->next;
+    pos->next = m;
+    m->next->prev = m;
+}
+
+void day09_remove_marble(marble* pos) {
+    // Don't destroy *pos, but change it's neighbours pointers
+    pos->next->prev = pos->prev;
+    pos->prev->next = pos->next;
+}
+
+size_t play_marble_mania(const string line, const size_t mult = 1) {
+    vector<string> words = split(line, ' ');
+    size_t players=0, marbles=0, exp_high_score=0;
+    size_t high_score=0;
+    if (words.size() >= 7) {
+        players = stoul(words[0]);
+        marbles = stoul(words[6]);
+    }
+    if (words.size() >= 12) {
+        exp_high_score = stoul(words[11]);
+    }
+    if (mult != 1) {
+        marbles *= mult;
+        exp_high_score = 0; // This will invalidate test cases
+    }
+    if (players > 0 && marbles > 0) {
+        cout << "Playing marble mania with " << players << " players and " << marbles << " marbles\n";
+        // Container for scores
+        vector<size_t> scores;
+        scores.resize(players);
+        fill(scores.begin(), scores.end(), 0);
+        // Container for marbles
+        vector<marble> M;
+        M.resize(marbles+1);
+        // Initialize first marble
+        marble* current = &M[0];
+        M[0].value = 0;
+        M[0].prev = M[0].next = current;
+        size_t current_player;
+        size_t score;
+        for (size_t m=1; m<=marbles; m++) {
+            if (m % 23 == 0) {
+                // Modulo 23 marble!
+                current_player = m % players;
+                // This marble will be kept and added to the score
+                score = m;
+                // Move 7 steps counter clockwise
+                for (size_t l=0; l<7; l++) {
+                    current = current->prev;
+                }
+                // Add that marble to the score
+                score += current->value;
+                // Add score to the current player;
+                scores[current_player] += score;
+                // Designate new current
+                current = current->next;
+                // Remove the claimed marble
+                day09_remove_marble(current->prev);
+                //day09_print_marbles(current);
+            } else {
+                // One step clockwise
+                current = current->next;
+                // Set up the new marble
+                M[m].value = m;
+                // Insert after current
+                day09_insert_after(current, &M[m]);
+                // Designate new current
+                current = &M[m];
+                //day09_print_marbles(current);
+            }
+        }
+        high_score = *max_element(scores.begin(), scores.end());
+        if (exp_high_score > 0) {
+            cout << "High score: " << high_score << ", expected: " << exp_high_score;
+            cout << (high_score==exp_high_score ? " PASSED" : " FAILED");
+            cout << endl;
+        } else {
+            cout << "High score: " << high_score << endl;
+        }
+    }
+    return high_score;
+}
+
+void day09(string inputfile, bool partone) {
+    if (partone) {
+        for (const string& line : get_lines(inputfile)) {
+            play_marble_mania(line);
+        }
+    } else {
+        play_marble_mania(get_lines(inputfile)[0], 100);
+    }
+}
+
+#ifndef DAY09
 
 class day13_cart_and_tracks {
 private:
