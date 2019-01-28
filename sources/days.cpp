@@ -958,52 +958,138 @@ void day10(string inputfile, bool partone) {
         if (line.size() > 2) particles.emplace_back(day10_particle(line));
     }
     cout << "Found " << particles.size() << " particles\n";
-    if (partone) {
-        bool converged = false;
-        int xmin, xmax, ymin, ymax;
-        size_t xwidth = 0, ywidth = 0, prev_xw = 0, prev_yw = 0;
-        size_t time = 0;
-        while (!converged) {
-            // Calculate bounding box of particles
+
+    bool converged = false;
+    int xmin, xmax, ymin, ymax;
+    size_t xwidth = 0, ywidth = 0, prev_xw = 0, prev_yw = 0;
+    size_t time = 0;
+    while (!converged) {
+        // Calculate bounding box of particles
+        xmin = xmax = particles[0].x;
+        ymin = ymax = particles[0].y;
+        for (day10_particle& p : particles) {
+            minmax(p.x, xmin, xmax);
+            minmax(p.y, ymin, ymax);
+        }
+        xwidth = (size_t)(xmax-xmin);
+        ywidth = (size_t)(ymax-ymin);
+        if (prev_xw == 0) {prev_xw = xwidth; prev_yw = ywidth;} // Init prev area
+        if (xwidth > prev_xw || ywidth > prev_yw) {
+            converged = true;
+            // But we need to go back to the previous time step
             xmin = xmax = particles[0].x;
             ymin = ymax = particles[0].y;
+            time--;
             for (day10_particle& p : particles) {
+                p.tick_back();
                 minmax(p.x, xmin, xmax);
                 minmax(p.y, ymin, ymax);
             }
-            xwidth = (size_t)(xmax-xmin);
-            ywidth = (size_t)(ymax-ymin);
-            if (prev_xw == 0) {prev_xw = xwidth; prev_yw = ywidth;} // Init prev area
-            if (xwidth > prev_xw || ywidth > prev_yw) {
-                converged = true;
-                // But we need to go back to the previous time step
-                xmin = xmax = particles[0].x;
-                ymin = ymax = particles[0].y;
-                time--;
-                for (day10_particle& p : particles) {
-                    p.tick_back();
-                    minmax(p.x, xmin, xmax);
-                    minmax(p.y, ymin, ymax);
+        } else {
+            prev_xw = xwidth;
+            prev_yw = ywidth;
+            time++;
+            for (day10_particle& p : particles) {
+                p.tick();
+            }
+        }
+    }
+    cout << "Converged at time " << time << " to area (" << xmin << "," << xmax << ")x("
+            << ymin << "," << ymax << ")" << endl;
+    day10_print_particles(particles, xmin, xmax, ymin, ymax);
+}
+
+class fuel_cell {
+public:
+    size_t x, y;
+    size_t rack_ID;
+    int power_level;
+    fuel_cell() {
+        x = y = 0;
+        rack_ID = 0;
+        power_level = 0;
+    }
+    fuel_cell(size_t x, size_t y, size_t serial_no) {
+        rack_ID = x + 10;
+        power_level = rack_ID * y;
+        power_level += serial_no;
+        power_level *= rack_ID;
+        power_level = (power_level/100) % 10;
+        power_level -= 5;
+    }
+};
+
+vector<vector<fuel_cell>> day11_create_grid(const size_t serial_no) {
+    vector<fuel_cell> row(300);
+    vector<vector<fuel_cell>> grid;
+    for (size_t y=1; y<=300; y++) {
+        for (size_t x=1; x<=300; x++) {
+            row[x-1] = fuel_cell(x, y, serial_no);
+        }
+        grid.push_back(row);
+    }
+    return grid;
+}
+
+pair<size_t, size_t> day11_find_3x3_max(vector<vector<fuel_cell>>& grid) {
+    int max_block = -10000;
+    int block = 0;
+    pair<size_t, size_t> max_block_loc;
+    for (size_t y=1; y<=300-2; y++) {
+        for (size_t x=1; x<=300-2; x++) {
+            block = grid[y-1][x-1].power_level + grid[y-1][x].power_level + grid[y-1][x+1].power_level +
+                    grid[y  ][x-1].power_level + grid[y  ][x].power_level + grid[y  ][x+1].power_level +
+                    grid[y+1][x-1].power_level + grid[y+1][x].power_level + grid[y+1][x+1].power_level;
+            if (block > max_block) {
+                max_block = block;
+                max_block_loc = {x, y};
+            }
+        }
+    }
+    return max_block_loc;
+}
+
+pair<size_t, size_t> day11_find_nxn_max(vector<vector<fuel_cell>>& grid, size_t& out_blk_size) {
+    int max_block = -10000;
+    int block = 0;
+    pair<size_t, size_t> max_block_loc;
+    for (size_t blk=1; blk<=300; blk++) {
+        for (size_t y=1; y<=300-blk+1; y++) {
+            for (size_t x=1; x<=300-blk+1; x++) {
+                block = 0;
+                for (size_t i=0; i<blk; i++) {
+                    for (size_t j=0; j<blk; j++) {
+                        block += grid[y-1+j][x-1+i].power_level;
+                    }
                 }
-            } else {
-                prev_xw = xwidth;
-                prev_yw = ywidth;
-                time++;
-                for (day10_particle& p : particles) {
-                    p.tick();
+                if (block > max_block) {
+                    max_block = block;
+                    max_block_loc = {x, y};
+                    out_blk_size = blk;
                 }
             }
         }
-        cout << "Converged at time " << time << " to area (" << xmin << "," << xmax << ")x("
-                << ymin << "," << ymax << ")" << endl;
-        day10_print_particles(particles, xmin, xmax, ymin, ymax);
-    } else {
-
+        cout << "Max block = " << max_block_loc.first << "," << max_block_loc.second << "," << blk << " has fuel sum = " << max_block << endl;
     }
-
+    return max_block_loc;
 }
 
-#ifndef DAY10
+void day11(string inputfile, bool partone) {
+    size_t serial_no = stoul(get_lines(inputfile)[0]);
+    cout << "Initializing grid with serial no: " << serial_no << endl;
+    vector<vector<fuel_cell>> grid = day11_create_grid(serial_no);
+    if (partone) {
+        pair<size_t, size_t> p = day11_find_3x3_max(grid);
+        cout << "3x3 block with the maximum fuel sum is at: " << p.first << "," << p.second << endl;
+    } else {
+        size_t blk_size = 1;
+        pair<size_t, size_t> p = day11_find_nxn_max(grid, blk_size);
+        cout << blk_size << "x" << blk_size <<
+           " block with the maximum fuel sum is at: " << p.first << "," << p.second << "," << blk_size << endl;
+    }
+}
+
+#ifndef DAY11
 
 class day13_cart_and_tracks {
 private:
