@@ -231,6 +231,7 @@ int main() {
     out << "Advent of Code 2018 in C++\n";
     out << "## Computation times (no optimization, both parts run separately).\n";
     out << "Processor: Intel Core i7-7700HQ, single thread unless indicated\n";
+    out << endl;
     out << "Day | Part One [ms] | Part Two [ms]\n";
     out << "--- | ---: | ---:\n";
     out << setprecision(3) << fixed;
