@@ -81,3 +81,38 @@ string trim_spaces(string value) {
     value.erase(std::find_if(value.rbegin(), value.rend(), std::bind1st(std::not_equal_to<char>(), ' ')).base(), value.end());
     return value;
 }
+
+Clock::Clock() {
+    start();
+}
+
+void Clock::start() {
+    t_start = chrono::high_resolution_clock::now();
+}
+
+void Clock::stop() {
+    t_stop = chrono::high_resolution_clock::now();
+}
+
+double Clock::read_sec() {
+    return read_millisec()/1000.0;
+}
+
+double Clock::read_msec() {
+    return read_microsec()/1000.0;
+}
+
+long long int Clock::read_millisec() {
+    auto dt = t_stop - t_start;
+    return chrono::duration_cast<std::chrono::milliseconds>(dt).count();
+}
+
+long long int Clock::read_microsec() {
+    auto dt = t_stop - t_start;
+    return chrono::duration_cast<std::chrono::microseconds>(dt).count();
+}
+
+long long int Clock::read_nanosec() {
+    auto dt = t_stop - t_start;
+    return chrono::duration_cast<std::chrono::nanoseconds>(dt).count();
+}

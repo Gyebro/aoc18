@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <chrono>
 
 using namespace std;
 
@@ -24,6 +25,20 @@ string string_union(const string& u, const string& v);
 vector<string> split(const string &s, char delim);
 
 string trim_spaces(const string s);
+
+class Clock {
+private:
+    chrono::high_resolution_clock::time_point t_start, t_stop;
+public:
+    Clock();
+    void start();
+    void stop();
+    double read_sec();
+    double read_msec();
+    long long int read_millisec();
+    long long int read_microsec();
+    long long int read_nanosec();
+};
 
 //// Templates ////
 

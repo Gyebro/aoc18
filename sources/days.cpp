@@ -10,7 +10,7 @@
 #include <list>
 #include <cmath>
 
-int day01(string inputfile, bool partone) {
+void day01(string inputfile, bool partone, bool verbose) {
     // Parse input
     ifstream in(inputfile);
     vector<int> freqlist;
@@ -39,10 +39,10 @@ int day01(string inputfile, bool partone) {
         }
         result = freq;
     }
-    return result;
+    cout << result << endl;
 }
 
-int day02(string inputfile, bool partone) {
+void day02(string inputfile, bool partone, bool verbose) {
     int result = 0;
     // Parse input
     vector<string> keys = get_lines(inputfile);
@@ -57,17 +57,17 @@ int day02(string inputfile, bool partone) {
             if(vector_pair_query(t, '*', (size_t)3, false, true)) keys_three++;
         }
         result = keys_two * keys_three;
+        cout << result << endl;
     } else {
         // Part Two
         // sort the keys
         sort(keys.begin(), keys.end());
         for (size_t i=0; i<keys.size()-1; i++) {
             if (string_diff_chars(keys[i], keys[i+1])==1) {
-                cout << string_union(keys[i], keys[i+1]);
+                cout << string_union(keys[i], keys[i+1]) << endl;
             }
         }
     }
-    return result;
 }
 
 class day03_rect {
@@ -135,7 +135,7 @@ public:
     }
 };
 
-size_t day03(string inputfile, bool partone) {
+void day03(string inputfile, bool partone, bool verbose) {
     // Parse input
     vector<string> lines = get_lines(inputfile);
     vector<day03_rect> rects(lines.size());
@@ -157,7 +157,7 @@ size_t day03(string inputfile, bool partone) {
             }
         }
     }
-    return result;
+    cout << result << endl;
 }
 
 class day04_record {
@@ -214,15 +214,15 @@ bool operator< (const day04_record& l, const day04_record& r) {
     return l.get_min() < r.get_min();
 }
 
-void day04(string inputfile, bool partone) {
+void day04(string inputfile, bool partone, bool verbose) {
     vector<string> lines = get_lines(inputfile);
     vector<day04_record> records;
     for (const string& line : lines) {
         records.push_back(day04_record(line));
     }
-    cout << "Found " << records.size() << " records\n";
+    if (verbose) cout << "Found " << records.size() << " records\n";
     sort(records.begin(), records.end());
-    cout << "Sorted in chronological order!\n";
+    if (verbose) cout << "Sorted in chronological order!\n";
     size_t ID = 0;
     vector<pair<size_t, vector<size_t>>> guard_table;
     size_t gt_id = 0;
@@ -325,13 +325,13 @@ void day04(string inputfile, bool partone) {
 
     }
     if (partone) {
-        cout << "The guard with the most minutes asleep is ID: " << most_minutes_ID << " (mins: " << most_minutes << ")\n";
-        cout << "The best minute of his schedule is " << out_best_minute << " (occasions: " << out_best_minute_amt << ")\n";
-        cout << "Result: " << most_minutes_ID*out_best_minute << endl;
+        if (verbose) cout << "The guard with the most minutes asleep is ID: " << most_minutes_ID << " (mins: " << most_minutes << ")\n";
+        if (verbose) cout << "The best minute of his schedule is " << out_best_minute << " (occasions: " << out_best_minute_amt << ")\n";
+        cout << most_minutes_ID*out_best_minute << endl;
     } else {
-        cout << "The guard with the most probable sleepy minute is ID: " << most_minutes_ID << "\n";
-        cout << "The best minute of his schedule is " << out_best_minute << " (occasions: " << out_best_minute_amt << ")\n";
-        cout << "Result: " << most_minutes_ID*out_best_minute << endl;
+        if (verbose) cout << "The guard with the most probable sleepy minute is ID: " << most_minutes_ID << "\n";
+        if (verbose) cout << "The best minute of his schedule is " << out_best_minute << " (occasions: " << out_best_minute_amt << ")\n";
+        cout << most_minutes_ID*out_best_minute << endl;
     }
 }
 
@@ -348,11 +348,12 @@ size_t day05_react_polymer(string& polymer) {
     while (p < polymer.size()-1) {
         // Check chars at p & p+1
         if (day05_react(polymer[p], polymer[p+1])) {
-            // Keep the first (p-1) chars and chars from (p+2)
-            string left="", right="";
-            if (p > 0) left=polymer.substr(0, p);
-            if (p < polymer.size()-2) right=polymer.substr(p+2);
-            polymer = left + right;
+            // Erase the two char's that disappear during the reaction
+            //string left="", right="";
+            //if (p > 0) left=polymer.substr(0, p);
+            //if (p < polymer.size()-2) right=polymer.substr(p+2);
+            //polymer = left + right;
+            polymer.erase(p, 2);
             if (p > 0) p--;
         } else {
             p++;
@@ -361,12 +362,13 @@ size_t day05_react_polymer(string& polymer) {
     return polymer.size();
 }
 
-void day05(string inputfile, bool partone) {
+void day05(string inputfile, bool partone, bool verbose) {
     string polymer = get_lines(inputfile)[0];
-    cout << "Polymer has initial length: " << polymer.size() << endl;
+    if (verbose) cout << "Polymer has initial length: " << polymer.size() << endl;
     if (partone) {
         day05_react_polymer(polymer);
-        cout << "Fully reacted polymer has length: " << polymer.size() << endl;
+        if (verbose)cout << "Fully reacted polymer has length: ";
+        cout << polymer.size() << endl;
     } else {
         size_t shortest = polymer.length();
         char problematic_type='A';
@@ -382,11 +384,12 @@ void day05(string inputfile, bool partone) {
                 problematic_type = type;
             }
         }
-        cout << "Shortest length " << shortest << " can be achieved by removing " << problematic_type << endl;
+        if (verbose) cout << "Shortest length " << shortest << " can be achieved by removing " << problematic_type << endl;
+        cout << shortest << endl;
     }
 }
 
-void day06(string inputfile, bool partone) {
+void day06(string inputfile, bool partone, bool verbose) {
     vector<string> lines = get_lines(inputfile);
     vector<pair<size_t, size_t>> coords;
     vector<string> words;
@@ -400,8 +403,8 @@ void day06(string inputfile, bool partone) {
             minmax(coords.back().second, ymin, ymax);
         }
     }
-    cout << "Found " << coords.size() << " coordinates\n";
-    cout << "Area bounds: X=(" << xmin << "," << xmax << "), Y=(" << ymin << "," << ymax << ")\n";
+    if (verbose) cout << "Found " << coords.size() << " coordinates\n";
+    if (verbose) cout << "Area bounds: X=(" << xmin << "," << xmax << "), Y=(" << ymin << "," << ymax << ")\n";
     // Create a map, padding bounds by 1 extra unit along x and y
     xmin--;
     xmax++;
@@ -475,7 +478,8 @@ void day06(string inputfile, bool partone) {
                      return !l.second;
                  }
              });
-        cout << "Largest non-infinite area is " << area_counts[0].first << " units.\n";
+        if (verbose) cout << "Largest non-infinite area's size is ";
+        cout << area_counts[0].first << endl;
     } else {
         // Part two: tag map cells if they are within D distance to every coord
         size_t D = 10000;
@@ -508,7 +512,8 @@ void day06(string inputfile, bool partone) {
                 if (map[j][i] == valid_key) { valid_area++; }
             }
         }
-        cout << "Area with less than D units to every coordinate: " << valid_area << endl;
+        if (verbose) cout << "Area with less than D units to every coordinate: ";
+        cout << valid_area << endl;
     }
 }
 
@@ -538,7 +543,7 @@ void day07_worker_summary(const vector<pair<size_t, char>>& workers) {
     }
 }
 
-void day07(string inputfile, bool partone) {
+void day07(string inputfile, bool partone, bool verbose) {
     vector<string> lines = get_lines(inputfile);
     vector<string> words;
     deque<day07_step> steps;
@@ -567,8 +572,8 @@ void day07(string inputfile, bool partone) {
             steps[task_idx].add_prereq(prereq);
         }
     }
-    cout << "Found " << steps.size() << " steps\n";
-    cout << "There are " << step_keys.size() << " different step keys\n";
+    if (verbose) cout << "Found " << steps.size() << " steps\n";
+    if (verbose) cout << "There are " << step_keys.size() << " different step keys\n";
     // Add the missing step (s)
     for (const char key : step_keys) {
         bool found = false;
@@ -577,7 +582,7 @@ void day07(string inputfile, bool partone) {
         }
         if (!found) {
             steps.push_back(day07_step(key));
-            cout << "Added step " << key << " with 0 pre-requisites\n";
+            if (verbose) cout << "Added step " << key << " with 0 pre-requisites\n";
         }
     }
     if (partone) {
@@ -614,7 +619,8 @@ void day07(string inputfile, bool partone) {
             }
             if (steps.empty()) finished = true;
         }
-        cout << "Order of steps: " << order << endl;
+        if (verbose) cout << "Order of steps: " ;
+        cout << order << endl;
     } else {
         size_t workers = 5;
         size_t time = 0;
@@ -638,7 +644,7 @@ void day07(string inputfile, bool partone) {
             for (size_t u=0; u<steps.size(); u++) {
                 if (steps[u].prerequisites.size() == 0) step_queue.push_back(steps[u].key);
             }
-            if (!step_queue.empty()) {
+            if (!step_queue.empty() && verbose) {
                 cout << "Available steps: ";
                 for (char k : step_queue) cout << k;
                 cout << endl;
@@ -657,7 +663,7 @@ void day07(string inputfile, bool partone) {
                 if (workers_status[0].second != no_job) { // If that worker had a task, mark it finished
                     step = workers_status[0].second;
                     workers_status[0].second = no_job;
-                    cout << "Step " << step << " has been finished at time = " << time << endl;
+                    if (verbose) cout << "Step " << step << " has been finished at time = " << time << endl;
                     //day07_worker_summary(workers_status);
                     // Remove this step from other steps' pre-reqs
                     for (size_t i=0; i<steps.size(); i++) {
@@ -670,7 +676,7 @@ void day07(string inputfile, bool partone) {
                     }
                 }
                 step = step_queue.front();
-                cout << "Worker have been assigned with step " << step << " at time = " << time << endl;
+                if (verbose) cout << "Worker have been assigned with step " << step << " at time = " << time << endl;
                 workers_status[0].first = (size_t)(60 + step + 1 - 'A');
                 workers_status[0].second = step;
                 //day07_worker_summary(workers_status);
@@ -695,7 +701,7 @@ void day07(string inputfile, bool partone) {
             if (workers_status[0].second != no_job) { // If that worker had a task, mark it finished
                 step = workers_status[0].second;
                 workers_status[0].second = no_job;
-                cout << "Step " << step << " has been finished at time = " << time << endl;
+                if (verbose) cout << "Step " << step << " has been finished at time = " << time << endl;
                 //day07_worker_summary(workers_status);
                 // Remove this step from other steps' pre-reqs
                 for (size_t i=0; i<steps.size(); i++) {
@@ -711,10 +717,12 @@ void day07(string inputfile, bool partone) {
             time_left = 0;
             for (const pair<size_t, char>&w : workers_status) { time_left += w.first; }
             if (time_left == 0 && steps.size() == 0) {
-                cout << "Assembly finished\n"; assembling = false;
+                if (verbose) cout << "Assembly finished\n";
+                assembling = false;
             }
         }
-        cout << "Required time is " << time << endl;
+        if (verbose) cout << "Required time is " ;
+        cout << time << endl;
     }
 }
 
@@ -771,7 +779,7 @@ size_t day08_calculate_value(const day08_node& node) {
     return val;
 }
 
-void day08(string inputfile, bool partone) {
+void day08(string inputfile, bool partone, bool verbose) {
     string line = get_lines(inputfile)[0];
     vector<string> words = split(line, ' ');
     vector<size_t> data;
@@ -779,15 +787,17 @@ void day08(string inputfile, bool partone) {
     for (string& word : words) {
         data.push_back(stoul(word));
     }
-    cout << "Input contains " << data.size() << " blocks\n";
+    if (verbose) cout << "Input contains " << data.size() << " blocks\n";
     size_t p = 0;
     day08_node root = day08_create_node(data, p);
     if (partone) {
         size_t meta_sum = day08_collect_meta(root);
-        cout << "Sum of all metadata entries: " << meta_sum << endl;
+        if (verbose) cout << "Sum of all metadata entries: ";
+        cout << meta_sum << endl;
     } else {
         size_t value = day08_calculate_value(root);
-        cout << "The value of the root node: " << value << endl;
+        if (verbose) cout << "The value of the root node: ";
+        cout << value << endl;
     }
 }
 
@@ -822,7 +832,7 @@ void day09_remove_marble(marble* pos) {
     pos->prev->next = pos->next;
 }
 
-size_t play_marble_mania(const string line, const size_t mult = 1) {
+size_t play_marble_mania(const string line, const size_t mult = 1, bool verbose = false) {
     vector<string> words = split(line, ' ');
     size_t players=0, marbles=0, exp_high_score=0;
     size_t high_score=0;
@@ -838,7 +848,7 @@ size_t play_marble_mania(const string line, const size_t mult = 1) {
         exp_high_score = 0; // This will invalidate test cases
     }
     if (players > 0 && marbles > 0) {
-        cout << "Playing marble mania with " << players << " players and " << marbles << " marbles\n";
+        if (verbose) cout << "Playing marble mania with " << players << " players and " << marbles << " marbles\n";
         // Container for scores
         vector<size_t> scores;
         scores.resize(players);
@@ -889,19 +899,19 @@ size_t play_marble_mania(const string line, const size_t mult = 1) {
             cout << (high_score==exp_high_score ? " PASSED" : " FAILED");
             cout << endl;
         } else {
-            cout << "High score: " << high_score << endl;
+            if (verbose) cout << "High score: " << high_score << endl;
         }
     }
     return high_score;
 }
 
-void day09(string inputfile, bool partone) {
+void day09(string inputfile, bool partone, bool verbose) {
     if (partone) {
         for (const string& line : get_lines(inputfile)) {
-            play_marble_mania(line);
+            cout << play_marble_mania(line) << endl;
         }
     } else {
-        play_marble_mania(get_lines(inputfile)[0], 100);
+        cout << play_marble_mania(get_lines(inputfile)[0], 100) << endl;
     }
 }
 
@@ -932,10 +942,10 @@ public:
     }
 };
 
-void day10_print_particles(vector<day10_particle>& particles, int xmin, int xmax, int ymin, int ymax) {
+void day10_print_particles(vector<day10_particle>& particles, int xmin, int xmax, int ymin, int ymax, bool verbose = false) {
     size_t W = xmax-xmin+1;
     size_t H = ymax-ymin+1;
-    cout << "Sky size: " << W << "x" << H << endl;
+    if (verbose) cout << "Sky size: " << W << "x" << H << endl;
     string row; row.resize(W);
     fill(row.begin(), row.end(), ' ');
     vector<string> sky; sky.resize(H);
@@ -951,14 +961,13 @@ void day10_print_particles(vector<day10_particle>& particles, int xmin, int xmax
     }
 }
 
-void day10(string inputfile, bool partone) {
+void day10(string inputfile, bool partone, bool verbose) {
     vector<string> lines = get_lines(inputfile);
     vector<day10_particle> particles;
     for (string& line : lines) {
         if (line.size() > 2) particles.emplace_back(day10_particle(line));
     }
-    cout << "Found " << particles.size() << " particles\n";
-
+    if (verbose) cout << "Found " << particles.size() << " particles\n";
     bool converged = false;
     int xmin, xmax, ymin, ymax;
     size_t xwidth = 0, ywidth = 0, prev_xw = 0, prev_yw = 0;
@@ -994,9 +1003,10 @@ void day10(string inputfile, bool partone) {
             }
         }
     }
-    cout << "Converged at time " << time << " to area (" << xmin << "," << xmax << ")x("
-            << ymin << "," << ymax << ")" << endl;
-    day10_print_particles(particles, xmin, xmax, ymin, ymax);
+    if (verbose) { cout << "Converged at time " << time << " to area (" << xmin << "," << xmax << ")x(" \
+            << ymin << "," << ymax << ")" << endl; }
+    day10_print_particles(particles, xmin, xmax, ymin, ymax, verbose);
+    cout << time << endl;
 }
 
 class fuel_cell {
@@ -1072,7 +1082,7 @@ pair<size_t, size_t> day11_find_nxn_max(vector<vector<fuel_cell>>& grid, size_t&
                 }
             }
         }
-        cout << "Max block = " << max_block_loc.first << "," << max_block_loc.second << "," << blk << " has fuel sum = " << max_block << endl;
+        //cout << "Max block = " << max_block_loc.first << "," << max_block_loc.second << "," << blk << " has fuel sum = " << max_block << endl;
         if (!max_changed) max_not_changed++;
         if (max_not_changed == 9) {
             break;
@@ -1081,18 +1091,19 @@ pair<size_t, size_t> day11_find_nxn_max(vector<vector<fuel_cell>>& grid, size_t&
     return max_block_loc;
 }
 
-void day11(string inputfile, bool partone) {
+void day11(string inputfile, bool partone, bool verbose) {
     size_t serial_no = stoul(get_lines(inputfile)[0]);
-    cout << "Initializing grid with serial no: " << serial_no << endl;
+    if (verbose) cout << "Initializing grid with serial no: " << serial_no << endl;
     vector<vector<fuel_cell>> grid = day11_create_grid(serial_no);
     if (partone) {
         pair<size_t, size_t> p = day11_find_3x3_max(grid);
-        cout << "3x3 block with the maximum fuel sum is at: " << p.first << "," << p.second << endl;
+        if (verbose) cout << "3x3 block with the maximum fuel sum is at: ";
+        cout << p.first << "," << p.second << endl;
     } else {
         size_t blk_size = 1;
         pair<size_t, size_t> p = day11_find_nxn_max(grid, blk_size);
-        cout << blk_size << "x" << blk_size <<
-           " block with the maximum fuel sum is at: " << p.first << "," << p.second << "," << blk_size << endl;
+        if (verbose) cout << blk_size << "x" << blk_size << " block with the maximum fuel sum is at: ";
+        cout << p.first << "," << p.second << "," << blk_size << endl;
     }
 }
 
@@ -1151,7 +1162,7 @@ int day12_generate(string initial, const vector<day12_pattern>& patterns, size_t
     return day12_checksum(plants, right_shift);
 }
 
-unsigned long long day12_generate_growth(string initial, const vector<day12_pattern>& patterns, size_t generations) {
+unsigned long long day12_generate_growth(string initial, const vector<day12_pattern>& patterns, size_t generations, bool verbose = false) {
     size_t right_shift = 0; // Shows the index shift in the string
     string plants = initial;
     size_t checksum, prev_checksum=0;
@@ -1163,7 +1174,7 @@ unsigned long long day12_generate_growth(string initial, const vector<day12_patt
         checksum = day12_checksum(plants, right_shift);
         growth = checksum-prev_checksum;
         if (g >= gskip && growth == prev_growth) {
-            cout << "Converged at g=" <<g << " with constant growth of " << growth << ", current chk = " << checksum << "\n";
+            if (verbose) cout << "Converged at g=" <<g << " with constant growth of " << growth << ", current chk = " << checksum << "\n";
             break;
         }
         prev_checksum = checksum;
@@ -1172,7 +1183,7 @@ unsigned long long day12_generate_growth(string initial, const vector<day12_patt
     return checksum+(generations-g)*growth;
 }
 
-void day12(string inputfile, bool partone) {
+void day12(string inputfile, bool partone, bool verbose) {
     vector<string> lines = get_lines(inputfile);
     string initial_state = split(lines[0], ' ')[2];
     vector<day12_pattern> patterns;
@@ -1183,13 +1194,15 @@ void day12(string inputfile, bool partone) {
             patterns.push_back(day12_pattern(words[0],words[2]));
         }
     }
-    cout << "Found " << patterns.size() << " generation patterns\n";
+    if (verbose) cout << "Found " << patterns.size() << " generation patterns\n";
     if (partone) {
         int sum = day12_generate(initial_state, patterns, 20);
-        cout << "The checksum after 20 generations: " << sum << endl;
+        if (verbose) cout << "The checksum after 20 generations: ";
+        cout << sum << endl;
     } else {
         size_t sum = day12_generate_growth(initial_state, patterns, 50000000000);
-        cout << "The checksum after 50000000000 generations: " << sum << endl;
+        if (verbose) cout << "The checksum after 50000000000 generations: ";
+        cout << sum << endl;
     }
 }
 
@@ -1274,7 +1287,8 @@ private:
     size_t w, h;
     vector<track> map; // row-continuous
     vector<cart> carts;
-    bool move_cart(size_t c, bool remove_crashed = false) {
+    bool verbose;
+    bool move_cart(size_t c, bool remove_crashed = false, bool verbose = false) {
         // Move carts[c]
         size_t x = carts[c].x;
         size_t y = carts[c].y;
@@ -1330,17 +1344,18 @@ private:
                     if (!remove_crashed) {
                         // Not removing crashed carts
                         ok = false;
-                        cout << "Cart " << c << " collides with cart " << i << " at (" << x << "," << y << ")\n";
+                        if (verbose) cout << "Cart " << c << " collides with cart " << i << " at (" << x << "," << y << ")\n";
+                        else cout << x << "," << y << endl;
                     } else {
                         // Removing crashed carts and ok = true if more than 1 cart left
                         vector<cart> remaining;
-                        cout << "Cart " << c << " collides with cart " << i << " Elves will quickly remove them\n";
+                        if (verbose) cout << "Cart " << c << " collides with cart " << i << " Elves will quickly remove them\n";
                         for (size_t j=0; j<carts.size(); j++) {
                             if (j != i && j != c) remaining.push_back(carts[j]);
                         }
                         carts = remaining;
                         if (carts.size() == 1) {
-                            cout << "Last cart is at (" << carts[0].x << "," << carts[0].y << "), finishing tick...\n";
+                            if (verbose) cout << "Last cart is at (" << carts[0].x << "," << carts[0].y << "), finishing tick...\n";
                             ok = false;
                         }
                     }
@@ -1350,7 +1365,7 @@ private:
         return ok;
     }
 public:
-    day13_cart_and_tracks(vector<string> lines) {
+    day13_cart_and_tracks(vector<string> lines, bool verbose = false) : verbose(verbose) {
         h = lines.size();
         w = lines[0].size(); // Not checking invalid input map
         map.resize(h*w);
@@ -1399,7 +1414,7 @@ public:
                 map[y*w+x]=t;
             }
         }
-        cout << "Found " << carts.size() << " carts on a map of " << h << "x" << w << endl;
+        if (verbose) cout << "Found " << carts.size() << " carts on a map of " << h << "x" << w << endl;
     }
     bool tick(bool remove_crashed = false) {
         // Sort carts to determine their move order
@@ -1407,18 +1422,19 @@ public:
         // Move carts one by one and check for inter-tick collisions
         bool ok = true;
         for (size_t c = 0; c<carts.size(); c++) {
-            ok &= move_cart(c, remove_crashed);
+            ok &= move_cart(c, remove_crashed, verbose);
         }
         if (remove_crashed && !ok) {
-            cout << "Last cart is at (" << carts[0].x << "," << carts[0].y << "), at the end of tick.\n";
+            if (verbose) cout << "Last cart is at (" << carts[0].x << "," << carts[0].y << "), at the end of tick.\n";
+            else cout << carts[0].x << "," << carts[0].y << endl;
         }
         return ok;
     }
 };
 
-void day13(string inputfile, bool partone) {
+void day13(string inputfile, bool partone, bool verbose) {
     // Create the map
-    day13_cart_and_tracks cat(get_lines(inputfile));
+    day13_cart_and_tracks cat(get_lines(inputfile), verbose);
     if (partone) {
         // Part one
         while (cat.tick());
@@ -1455,7 +1471,7 @@ bool day14_check(const vector<uint8_t>& recipes, const vector<uint8_t>& target, 
     return ok;
 }
 
-void day14(string inputfile, bool partone) {
+void day14(string inputfile, bool partone, bool verbose) {
     vector<uint8_t> recipes;
     recipes.push_back(3);
     recipes.push_back(7);
@@ -1494,7 +1510,8 @@ void day14(string inputfile, bool partone) {
                 if (found) break;
             }
         }
-        cout << "Target sequence found at " << i << " recipes to the left: " << i-1 << endl;
+        //cout << "Target sequence found at " << i << " recipes to the left: ";
+        cout << i-1 << endl;
     }
     return;
 }
@@ -1805,21 +1822,25 @@ public:
 
 
 
-void day15(string inputfile, bool partone) {
+void day15(string inputfile, bool partone, bool verbose) {
     vector<string> lines = get_lines(inputfile);
     size_t outcome;
     if (partone) {
         day15_battle battle(lines);
         outcome = battle.start();
-        cout << "Outcome = " << outcome << endl;
+        if (verbose) cout << "Outcome = ";
+        cout << outcome << endl;
     } else {
-        for (size_t elves_attack = 4; elves_attack < 200; elves_attack++) {
+        for (size_t elves_attack = 5; elves_attack < 200;) {
             day15_battle battle(lines);
+            if (verbose) cout << "Battle started with attack_power = " << elves_attack << endl;
             if (battle.start(elves_attack, outcome)) {
-                cout << "Elves won with attack_power = " << elves_attack << ", outcome = " << outcome << endl;
+                if (verbose) cout << "Elves won with attack_power = " << elves_attack << ", outcome = ";
+                cout << outcome << endl;
                 break;
             } else {
-                cout << "An elf died when the elves had attack_power = " << elves_attack << endl;
+                if (verbose) cout << "An elf died when the elves had attack_power = " << elves_attack << ", outcome = " << outcome << endl;
+                elves_attack += 1 + sqrt(outcome/100)/3;
             }
         }
     }
@@ -1982,13 +2003,13 @@ public:
             }
         }
         if (matches == 1) {
-            cout << "Opcode " << (int)last_match_opcode << " is identified as " << day16_op_names[(int)last_match_op] << "!\n";
+            // cout << "Opcode " << (int)last_match_opcode << " is identified as " << day16_op_names[(int)last_match_op] << "!\n";
             dict.emplace_back( pair<uint8_t, day16_op>({last_match_opcode, last_match_op}) );
         }
     }
 };
 
-void day16(string inputfile, bool partone) {
+void day16(string inputfile, bool partone, bool verbose) {
     vector<string> lines = get_lines(inputfile);
     vector<day16_sample> samples;
     size_t split_line;
@@ -2000,14 +2021,15 @@ void day16(string inputfile, bool partone) {
             break;
         }
     }
-    cout << "Found " << samples.size() << " samples\n";
-    cout << "First part of input ends at line " << split_line << endl;
+    if (verbose) cout << "Found " << samples.size() << " samples\n";
+    if (verbose) cout << "First part of input ends at line " << split_line << endl;
     if (partone) {
         size_t three_or_more = 0;
         for (day16_sample& s : samples) {
             if (s.test() >= 3) three_or_more++;
         }
-        cout << "Samples behaving like 3 or more opcodes: " << three_or_more << endl;
+        if (verbose) cout << "Samples behaving like 3 or more opcodes: ";
+        cout << three_or_more << endl;
     } else {
         vector< pair<uint8_t, day16_op> > opcode_dictionary;
         while(opcode_dictionary.size() < 16) {
@@ -2015,7 +2037,7 @@ void day16(string inputfile, bool partone) {
                 s.test_with_dictionary(opcode_dictionary);
             }
         }
-        cout << "All opcodes identified, parsing program...\n";
+        if (verbose) cout << "All opcodes identified, parsing program...\n";
         // Parse lines
         day16_instr i;
         vector<day16_instr> program;
@@ -2029,7 +2051,7 @@ void day16(string inputfile, bool partone) {
                 program.push_back(i);
             }
         }
-        cout << "Found " << program.size() << " instructions\n";
+        if (verbose) cout << "Found " << program.size() << " instructions\n";
         // Sort dictionary based on opcode
         sort(opcode_dictionary.begin(), opcode_dictionary.end(),
              [] (const auto& l, const auto& r) { return l.first < r.first; });
@@ -2037,11 +2059,12 @@ void day16(string inputfile, bool partone) {
         vector<int> regs(4);
         fill(regs.begin(), regs.end(), 0);
         // Run program
-        cout << "Running program...\n";
+        if (verbose) cout << "Running program...\n";
         for(const day16_instr& i : program) {
             regs = day16_apply(opcode_dictionary[i.opcode].second, i, regs);
         }
-        cout << "Register 0 is '" << regs[0] << "'\n";
+        if (verbose) cout << "Register 0 is ";
+        cout << regs[0] << endl;
     }
 }
 
@@ -2076,7 +2099,7 @@ public:
     list<pair<size_t, size_t>> waterfront;
     vector<vector<tile>> map;
     size_t xmin, xmax, ymin, ymax;
-    day17_depth_map(string& inputfile) {
+    day17_depth_map(string& inputfile, bool verbose = false) {
         vector<string> lines = get_lines(inputfile);
         vector<clayrange> clays;
         clayrange cr;
@@ -2099,14 +2122,14 @@ public:
         }
         // Field dimensions along x should be extended by 1
         xmin--; xmax++;
-        cout << "Field ranges x=" << xmin << ".." << xmax << " y=" << ymin << ".." << ymax << endl;
+        if (verbose) cout << "Field ranges x=" << xmin << ".." << xmax << " y=" << ymin << ".." << ymax << endl;
         // Build map matrix
         vector<tile> row;
         row.resize(xmax-xmin+1);
         fill(row.begin(), row.end(), tile::sand);
         map.resize(ymax-ymin+1);
         fill(map.begin(), map.end(), row);
-        cout << "Depth map is " << map.size() << "x" << map[0].size() << " large\n";
+        if (verbose) cout << "Depth map is " << map.size() << "x" << map[0].size() << " large\n";
         // Insert clays
         size_t claycount = 0;
         for (const clayrange& c : clays) {
@@ -2129,13 +2152,13 @@ public:
                 }
             }
         }
-        cout << "Scan reports " << claycount << " blocks of clay\n";
+        if (verbose) cout << "Scan reports " << claycount << " blocks of clay\n";
         // Water source
         source = {500, ymin};
         get_tile(500, ymin) = tile::water;
         // Waterfront is the single source currently
         waterfront.push_back(source);
-        cout << "Waterfront is currently at " << source.first << "," << source.second << endl;
+        if (verbose) cout << "Waterfront is currently at " << source.first << "," << source.second << endl;
     }
     void print(ostream& out, bool area_only=false, size_t x=0, size_t y=0) {
         const int width = 15;
@@ -2220,7 +2243,7 @@ public:
                     if (left) { if (get_tile(x+1,y)==tile::sand) get_tile(x+1,y)=tile::water; }
                     else      { if (get_tile(x-1,y)==tile::sand) get_tile(x-1,y)=tile::water; }
                 } else {
-                    cout << "Warning: horizontal flow meets [settled_water]!\n";
+                    // cout << "Warning: horizontal flow meets [settled_water]!\n";
                     spreading = false;
                 }
             } else if (get_tile(x,y)==tile::sand) { // No support and left side is sand
@@ -2329,16 +2352,20 @@ public:
     }
 };
 
-void day17(string inputfile, bool partone) {
-    day17_depth_map map(inputfile);
+void day17(string inputfile, bool partone, bool verbose) {
+    day17_depth_map map(inputfile, verbose);
     map.solve();
     if (partone) {
-        cout << "Water amount: " << map.count_water() << endl;
+        if (verbose) cout << "Water amount: ";
+        cout << map.count_water() << endl;
     } else {
-        cout << "Settled water amount: " << map.count_water(true) << endl;
+        if (verbose) cout << "Settled water amount: ";
+        cout << map.count_water(true) << endl;
     }
-    ofstream out(inputfile+".map.txt");
-    map.print(out);
+    if (verbose) {
+        ofstream out(inputfile+".map.txt");
+        map.print(out);
+    }
 }
 
 class day18_forest {
@@ -2472,7 +2499,7 @@ public:
     }
 };
 
-void day18(string inputfile, bool partone) {
+void day18(string inputfile, bool partone, bool verbose) {
     day18_forest forest(inputfile);
     if (partone) {
         for (size_t t=0; t<10; t++) forest.tick(false); // true will print the map
@@ -2820,7 +2847,7 @@ public:
     }
 };
 
-void day19(string inputfile, bool partone) {
+void day19(string inputfile, bool partone, bool verbose) {
     time_travel_device_emulator device(inputfile);
     if (partone) {
         device.run();
@@ -3092,7 +3119,7 @@ bool operator==(const day20_map::node& lhs, const day20_map::node& rhs) {
             lhs.doors[3] == rhs.doors[3]);
 }
 
-void day20(string inputfile, bool partone) {
+void day20(string inputfile, bool partone, bool verbose) {
     string regex = get_lines(inputfile)[0];
     day20_map map(regex);
     if (partone) {
@@ -3104,7 +3131,7 @@ void day20(string inputfile, bool partone) {
     }
 }
 
-void day21(string inputfile, bool partone) {
+void day21(string inputfile, bool partone, bool verbose) {
     time_travel_device_emulator device(inputfile);
     if (partone) {
         //device.decompile();
@@ -3347,7 +3374,7 @@ public:
     }
 };
 
-void day22(string inputfile, bool partone) {
+void day22(string inputfile, bool partone, bool verbose) {
     vector<string> lines = get_lines(inputfile);
     size_t depth = stoul(split(lines[0],':')[1]);
     vector<string> coords = split(split(lines[1],':')[1],',');
@@ -3468,7 +3495,7 @@ void day23_find_local_opt(const vector<nanobot>& nanobots, const nanobot::coord 
     cout << "Manhattan distance is: " << abs(c0.x)+abs(c0.y)+abs(c0.z) << endl;
 }
 
-void day23(string inputfile, bool partone) {
+void day23(string inputfile, bool partone, bool verbose) {
     vector<string> lines = get_lines(inputfile);
     vector<string> parts, parts2;
     // Format: pos=<x,y,z>, r=r
@@ -3760,7 +3787,7 @@ size_t day24_battle(vector<cellgroup> c, size_t is_boost = 0, bool verbose = fal
     return inf_units;
 }
 
-void day24(string inputfile, bool partone) {
+void day24(string inputfile, bool partone, bool verbose) {
     vector<string> lines = get_lines(inputfile);
     // Look for keywords {Immune, Infection}
     bool is_infection = false;
@@ -3827,7 +3854,7 @@ public:
     }
 };
 
-void day25(string inputfile) {
+void day25(string inputfile, bool partone, bool verbose) {
     vector<string> lines = get_lines(inputfile);
     vector<string> words;
     vector<spacetime_coord> coords;
@@ -3847,7 +3874,6 @@ void day25(string inputfile) {
     cout << "Z: [" << zmin << ", " << zmax << "]\n";   cout << "T: [" << tmin << ", " << tmax << "]\n";
     // Start looking up constellations
     bool matching = true;
-    bool verbose = false;
     size_t current;
     vector<size_t> neighbours;
     size_t constellations = 0;
