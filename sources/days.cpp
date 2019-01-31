@@ -3561,11 +3561,11 @@ void day23(string inputfile, bool partone, bool verbose) {
 class cellgroup {
 public:
     enum class damage {
-        slashing,
-        bludgeoning,
-        cold,
-        fire,
-        radiation,
+        slashing = 0,
+        bludgeoning = 1,
+        cold = 2,
+        fire = 3,
+        radiation = 4,
     };
 	static const string damage_strings[5];
 	static const size_t damage_types = 5;
@@ -3581,11 +3581,26 @@ public:
     bool immunities[damage_types];
     bool weaknesses[damage_types];
     size_t target_id;
-    cellgroup() {
+    /*cellgroup() {
         units = 0;
         hp = 0;
         atk = 0;
         initiative = 0;
+        target_id = 100000;
+    }*/
+    cellgroup(const cellgroup& c) {
+        infection = c.infection;
+        ID = c.ID;
+        units = c.units;
+        hp = c.hp;
+        atk = c.atk;
+        atk_type = c.atk_type;
+        initiative = c.initiative;
+        for (size_t i=0; i<damage_types; i++) {
+            immunities[i] = c.immunities[i];
+            weaknesses[i] = c.weaknesses[i];
+        }
+        target_id = c.target_id;
     }
     void parse_weaknesses(string s) {
         // string contains 'weak to A,B'
@@ -3649,8 +3664,8 @@ public:
         } else if (has_immunities) {
             parse_immunities(damage_type_list);
         }
-        /* // Debug immunities and weaknesses
-        cout << "WI list: " << damage_type_list << endl;
+        // Debug immunities and weaknesses
+        /*cout << "WI list: " << damage_type_list << endl;
         cout << "   SBCFR\n";
         cout << "W: ";
         for (size_t i=0; i<5; i++) { cout << weaknesses[i]; } cout << endl;
@@ -3672,13 +3687,21 @@ public:
     void take_damage(size_t dmg) {
         // This group loses dmg/hp units
         size_t units_lost = (dmg / hp);
-        if (units <= units_lost) { units = 0; }
+        if (units == 0) {
+            cout << "Error, dead group being hit\n";
+            units_lost = 0;
+        }
+        if (units < units_lost) { units = 0; }
         else { units -= units_lost; }
     }
     void take_damage(size_t dmg, size_t& killed) {
         // This group loses dmg/hp units
         size_t units_lost = (dmg / hp);
-        if (units <= units_lost) { killed = units; units = 0; }
+        if (units == 0) {
+            cout << "Error, dead group being hit\n";
+            units_lost = 0;
+        }
+        if (units < units_lost) { killed = units; units = 0; }
         else { killed = units_lost; units -= units_lost; }
     }
     string group_name() const {
@@ -3724,7 +3747,6 @@ size_t day24_determine_target(const vector<cellgroup>& c, const size_t idx, vect
         // Swap to ID
         if (verbose) cout << "Best target for " << c[idx].group_name() << " is " << c[best_target].group_name() << endl;
         best_target = c[best_target].ID;
-
     }
     return best_target;
 }
@@ -3739,24 +3761,25 @@ bool day24_fight(vector<cellgroup>& c, size_t& is_units, size_t& inf_units, bool
         else {            return epl > epr; }
     });
     vector<size_t> targets;
+    bool battle_details = false;
     for (size_t i=0; i<c.size(); i++) {
-        c[i].target_id = day24_determine_target(c, i, targets, verbose);
+        c[i].target_id = day24_determine_target(c, i, targets, battle_details);
         targets.push_back(c[i].target_id);
     }
     // [[ Attack phase ]]
-    // Sort cellgroups based on initiative, targets are invalid!
+    // Sort cellgroups based on initiative
     sort(c.begin(), c.end(), [](const cellgroup& l, const cellgroup& r){
         return l.initiative > r.initiative;
     });
-    size_t target_idx;
-    size_t units_lost;
-    size_t target_id;
+    size_t target_idx = 0;
+    size_t units_lost = 0;
+    size_t target_id = 0;
     for (size_t i=0; i<c.size(); i++) {
         target_id = c[i].target_id;
         if (c[i].units > 0 && target_id < c.size()) {
-            target_idx = find_if(c.begin(), c.end(), [&target_id](const cellgroup& cg) { return cg.ID == target_id; })-c.begin();
+            target_idx = (size_t)(find_if(c.begin(), c.end(), [&target_id](const cellgroup& cg) { return cg.ID == target_id; })-c.begin());
             c[target_idx].take_damage( c[i].damage_versus(c[target_idx]), units_lost );
-            if (verbose) { cout << "Group " << c[i].group_name() << " hits group " << c[target_idx].group_name() << " for " <<
+            if (battle_details) { cout << "Group " << c[i].group_name() << " hits group " << c[target_idx].group_name() << " for " <<
                  c[i].damage_versus(c[target_idx]) << " damage, killing " << units_lost << " units\n"; }
         }
     }
@@ -3770,12 +3793,13 @@ bool day24_fight(vector<cellgroup>& c, size_t& is_units, size_t& inf_units, bool
             is_units += cg.units;
         }
     }
-    if (verbose) {
+    if (battle_details) {
         cout << "Immune system:\n";
         for (const cellgroup& cg : c) { if (!cg.infection) {cout << "Group " << cg.group_name() << " has " << cg.units << " units\n";} }
         cout << "Infection:\n";
         for (const cellgroup& cg : c) { if (cg.infection) {cout << "Group " << cg.group_name() << " has " << cg.units << " units\n";} }
     }
+    //if (verbose) cout << "Immune system: " << is_units << ", Infection: " << inf_units << endl;
     if ((is_units == 0 || inf_units == 0)) if (verbose) cout << "Immune system: " << is_units << ", Infection: " << inf_units << endl;
     return (is_units > 0 && inf_units > 0);
 }
@@ -3796,7 +3820,6 @@ pair<size_t, size_t> day24_battle(vector<cellgroup> c, size_t is_boost = 0, bool
         prev_inf_units = inf_units;
         prev_is_units = is_units;
     }
-
     return {inf_units, is_units};
 }
 
@@ -3821,7 +3844,7 @@ void day24(string inputfile, bool partone, bool verbose) {
     // Battle
     pair<size_t, size_t> units;
     if (partone) {
-        units = day24_battle(cellgroups);
+        units = day24_battle(cellgroups, 0, verbose);
         cout << units.first << endl;
     } else {
         size_t is_boost = 1;
@@ -3829,7 +3852,7 @@ void day24(string inputfile, bool partone, bool verbose) {
         while (!is_won) {
             if (verbose) cout << "Executing battle immune system boost is: " << is_boost << endl;
             // Run battle with immune system boost
-            units = day24_battle(cellgroups, is_boost);
+            units = day24_battle(cellgroups, is_boost, verbose);
             size_t inf_units_left = units.first;
             // Post-battle stats
             if (inf_units_left > 0) {

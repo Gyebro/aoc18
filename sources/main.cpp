@@ -11,18 +11,18 @@ int main() {
 #ifndef RUN_BENCHMARKS
 
 #ifdef DAY01
-    cout << day01("day01.txt") << endl;
-    cout << day01("day01.txt", false) << endl;
+    day01("day01.txt");
+    day01("day01.txt", false);
 #endif
 
 #ifdef DAY02
-    cout << day02("day02.txt") << endl;
+    day02("day02.txt");
     day02("day02.txt", false);
 #endif
 
 #ifdef DAY03
-    cout << day03("day03.txt") << endl;
-    cout << day03("day03.txt", false) << endl;
+    day03("day03.txt");
+    day03("day03.txt", false);
 #endif
 
 #ifdef DAY04
@@ -142,9 +142,9 @@ int main() {
 #endif
 
 #ifdef DAY24
-    //day24("day24_test.txt"); // Passed 5216
-    day24("day24.txt");
-    day24("day24.txt", false);
+    day24("day24_test.txt", true, true); // Passed 5216
+    day24("day24.txt", true, true);
+    day24("day24.txt", false, true);
 #endif
 
 #ifdef DAY25
