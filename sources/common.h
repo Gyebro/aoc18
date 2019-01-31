@@ -10,6 +10,11 @@
 #include <sstream>
 #include <chrono>
 
+//#define USE_WINDOWS_CLOCK
+#ifdef USE_WINDOWS_CLOCK
+#include "windows.h"
+#endif
+
 using namespace std;
 
 string sort_string(const string& s);
@@ -26,6 +31,7 @@ vector<string> split(const string &s, char delim);
 
 string trim_spaces(const string s);
 
+#ifndef USE_WINDOWS_CLOCK
 class Clock {
 private:
     chrono::high_resolution_clock::time_point t_start, t_stop;
@@ -39,6 +45,22 @@ public:
     long long int read_microsec();
     long long int read_nanosec();
 };
+#endif
+
+#ifdef USE_WINDOWS_CLOCK
+class Clock {
+private:
+    double PCFreq;
+    LARGE_INTEGER li;
+    __int64 CounterStart, CounterStop;
+public:
+    Clock();
+    void start();
+    void stop();
+    double read_msec();
+    double read_usec();
+};
+#endif
 
 //// Templates ////
 

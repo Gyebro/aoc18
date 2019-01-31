@@ -82,6 +82,7 @@ string trim_spaces(string value) {
     return value;
 }
 
+#ifndef USE_WINDOWS_CLOCK
 Clock::Clock() {
     start();
 }
@@ -116,3 +117,30 @@ long long int Clock::read_nanosec() {
     auto dt = t_stop - t_start;
     return chrono::duration_cast<std::chrono::nanoseconds>(dt).count();
 }
+#endif
+
+#ifdef USE_WINDOWS_CLOCK
+Clock::Clock() {
+    QueryPerformanceFrequency(&li);
+    PCFreq = double(li.QuadPart)/1000.0;
+    start();
+}
+
+void Clock::start() {
+    QueryPerformanceCounter(&li);
+    CounterStart = li.QuadPart;
+}
+
+void Clock::stop() {
+    QueryPerformanceCounter(&li);
+    CounterStop = li.QuadPart;
+}
+
+double Clock::read_msec() {
+    return double(CounterStop-CounterStart)/PCFreq;
+}
+
+double Clock::read_usec() {
+    return read_msec()/1000.0;
+}
+#endif

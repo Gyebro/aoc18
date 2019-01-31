@@ -235,14 +235,19 @@ int main() {
     out << "Day | Part One [ms] | Part Two [ms]\n";
     out << "--- | ---: | ---:\n";
     out << setprecision(3) << fixed;
+    double time_sum = 0;
     for (size_t i=0; i<tasks.size(); i++) {
         if (i != 10-1 && i != 25-1) {
             out << tasks[i] << " | " << time_ms[2*i] << " | " << time_ms[2*i+1] << '\n';
+            time_sum += time_ms[2*i]+time_ms[2*i+1];
         } else {
             out << tasks[i] << " | " << time_ms[2*i] << " | - \n";
+            time_sum += time_ms[2*i];
         }
 
     }
+    out << endl;
+    out << "Total time: " << time_sum/1000.0 << " seconds\n";
     out << endl;
     out << "## And so the time stream has been fixed\n";
     out << "![AoC18 calendar](calendar18.gif)";
