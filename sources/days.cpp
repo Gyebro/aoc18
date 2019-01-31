@@ -1618,24 +1618,36 @@ private:
         if (targets.empty()) {
             return move_result::no_targets_left;
         } else {
-            size_t lowest_distance = W*H;
-            size_t dist;
+            // Check if any of the targets are in the immediate neighborhood
             bool possible_to_move = false;
-            vector<vector<tile*>> paths;
-            vector<tile*> front;
-            vector<tile*> shortest_path;
+            size_t lowest_distance = W*H;
             for (tile* t : targets) {
-                front.clear();
-                paths.clear();
-                front.push_back(u.tile_ptr);
-                paths.push_back(front);
-                bool reachable = graph_bfs(t, lowest_distance, front, paths);
-                if (reachable) {
-                    dist = paths[0].size();
-                    possible_to_move = true;
-                    if (dist < lowest_distance) {
-                        lowest_distance = dist;
-                        shortest_path = paths[0];
+                for (tile* n : u.tile_ptr->neighbors) {
+                    if (t == n) {
+                        possible_to_move = true;
+                        lowest_distance = 2;
+                        break;
+                    }
+                }
+            }
+            vector<tile*> shortest_path;
+            if (!possible_to_move) {
+                size_t dist;
+                vector<vector<tile*>> paths;
+                vector<tile*> front;
+                for (tile* t : targets) {
+                    front.clear();
+                    paths.clear();
+                    front.push_back(u.tile_ptr);
+                    paths.push_back(front);
+                    bool reachable = graph_bfs(t, lowest_distance, front, paths);
+                    if (reachable) {
+                        dist = paths[0].size();
+                        possible_to_move = true;
+                        if (dist < lowest_distance) {
+                            lowest_distance = dist;
+                            shortest_path = paths[0];
+                        }
                     }
                 }
             }

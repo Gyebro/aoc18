@@ -243,6 +243,9 @@ int main() {
         }
 
     }
+    out << endl;
+    out << "## And so the time stream has been fixed\n";
+    out << "![AoC18 calendar](calendar18.gif)";
     out.close();
 #endif
 
