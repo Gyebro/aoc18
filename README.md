@@ -30,3 +30,6 @@ Day 22: Mode Maze | 0.992 | 41.671
 Day 23: Experimental Emergency Teleportation | 5.461 | 8.427
 Day 24: Immune System Simulator 20XX | 3.461 | 62.994
 Day 25: Four-Dimensional Adventure | 11.016 | - 
+
+## And so the time stream has been fixed
+![AoC18 calendar](calendar18.gif)
