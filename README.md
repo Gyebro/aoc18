@@ -5,33 +5,33 @@ Processor: Intel Core i7-7700HQ, single thread unless indicated
 
 Day | Part One [ms] | Part Two [ms]
 --- | ---: | ---:
-Day 01: Chronal Calibration | 0.991 | 1.065
-Day 02: Inventory Management System | 0.485 | 0.992
-Day 03: No Matter How You Slice It | 15.871 | 17.359
-Day 04: Repose Record | 5.456 | 5.956
-Day 05: Alchemical Reduction | 15.279 | 300.082
-Day 06: Chronal Coordinates | 17.071 | 7.455
-Day 07: The Sum of Its Parts | 0.993 | 1.488
-Day 08: Memory Maneuver | 3.483 | 3.957
-Day 09: Marble Mania | 1.488 | 132.925
-Day 10: The Stars Align | 12.399 | - 
-Day 11: Chronal Charge | 2.480 | 129.484
-Day 12: Subterranean Sustainability | 0.513 | 3.948
-Day 13: Mine Cart Madness | 1.518 | 2.452
-Day 14: Chocolate Charts | 13.520 | 454.357
-Day 15: Beverage Bandits | 1215.226 | 1302.481
-Day 16: Chronal Classification | 5.954 | 4.964
-Day 17: Reservoir Research | 7.362 | 6.288
-Day 18: Settlers of The North Pole | 7.939 | 421.537
-Day 19: Go With The Flow | 63.028 | 1.035
-Day 20: A Regular Map | 556.513 | 567.448
-Day 21: Chronal Conversion | 0.496 | 165.679
-Day 22: Mode Maze | 0.523 | 43.142
-Day 23: Experimental Emergency Teleportation | 4.967 | 8.631
-Day 24: Immune System Simulator 20XX | 3.474 | 73.805
-Day 25: Four-Dimensional Adventure | 11.408 | - 
+Day 01: Chronal Calibration | 0.991 | 1.005
+Day 02: Inventory Management System | 0.516 | 0.477
+Day 03: No Matter How You Slice It | 16.861 | 14.881
+Day 04: Repose Record | 4.960 | 5.953
+Day 05: Alchemical Reduction | 14.906 | 308.036
+Day 06: Chronal Coordinates | 15.855 | 7.931
+Day 07: The Sum of Its Parts | 0.989 | 0.495
+Day 08: Memory Maneuver | 3.468 | 3.968
+Day 09: Marble Mania | 1.490 | 145.823
+Day 10: The Stars Align | 14.880 | - 
+Day 11: Chronal Charge | 2.977 | 98.703
+Day 12: Subterranean Sustainability | 0.496 | 4.463
+Day 13: Mine Cart Madness | 2.465 | 3.469
+Day 14: Chocolate Charts | 14.385 | 473.680
+Day 15: Beverage Bandits | 1220.159 | 660.672
+Day 16: Chronal Classification | 4.969 | 5.447
+Day 17: Reservoir Research | 8.215 | 6.781
+Day 18: Settlers of The North Pole | 7.471 | 421.104
+Day 19: Go With The Flow | 100.862 | 0.501
+Day 20: A Regular Map | 553.537 | 591.743
+Day 21: Chronal Conversion | 0.981 | 184.513
+Day 22: Mode Maze | 0.496 | 49.599
+Day 23: Experimental Emergency Teleportation | 4.947 | 9.820
+Day 24: Immune System Simulator 20XX | 3.966 | 76.888
+Day 25: Four-Dimensional Adventure | 10.450 | - 
 
-Total time: 5.625 seconds
+Total time: 5.087 seconds
 
 ## And so the time stream has been fixed
 ![AoC18 calendar](calendar18.gif)

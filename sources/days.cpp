@@ -1837,16 +1837,16 @@ public:
 void day15(string inputfile, bool partone, bool verbose) {
     vector<string> lines = get_lines(inputfile);
     size_t outcome;
+    day15_battle battle(lines);
     if (partone) {
-        day15_battle battle(lines);
         outcome = battle.start();
         if (verbose) cout << "Outcome = ";
         cout << outcome << endl;
     } else {
+        day15_battle copy = battle;
         for (size_t elves_attack = 5; elves_attack < 200;) {
-            day15_battle battle(lines);
             if (verbose) cout << "Battle started with attack_power = " << elves_attack << endl;
-            if (battle.start(elves_attack, outcome)) {
+            if (copy.start(elves_attack, outcome)) {
                 if (verbose) cout << "Elves won with attack_power = " << elves_attack << ", outcome = ";
                 cout << outcome << endl;
                 break;
