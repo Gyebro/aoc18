@@ -208,11 +208,11 @@ int main() {
         day_functions[d-1](inputfile, true,  false);
         c.stop();
         time_ms.push_back(c.read_msec());
-        // Run part two
         c.start();
         day_functions[d-1](inputfile, false, false);
         c.stop();
         time_ms.push_back(c.read_msec());
+
     }
 
     // Print result to cout
@@ -236,7 +236,12 @@ int main() {
     out << "--- | ---: | ---:\n";
     out << setprecision(3) << fixed;
     for (size_t i=0; i<tasks.size(); i++) {
-        out << tasks[i] << " | " << time_ms[2*i] << " | " << time_ms[2*i+1] << '\n';
+        if (i != 10-1 && i != 25-1) {
+            out << tasks[i] << " | " << time_ms[2*i] << " | " << time_ms[2*i+1] << '\n';
+        } else {
+            out << tasks[i] << " | " << time_ms[2*i] << " | - \n";
+        }
+
     }
     out.close();
 #endif

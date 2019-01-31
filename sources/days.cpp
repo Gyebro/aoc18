@@ -2387,7 +2387,7 @@ public:
         vector<string> lines = get_lines(inputfile);
         H = lines.size();
         W = lines[0].size();
-        cout << "Building map for a " << H << "x" << W << " acre large forest\n";
+        // cout << "Building map for a " << H << "x" << W << " acre large forest\n";
         vector<acre> row;
         frame_ptr = 0;
         maps[frame_ptr].reserve(H*W);
@@ -2504,7 +2504,8 @@ void day18(string inputfile, bool partone, bool verbose) {
     if (partone) {
         for (size_t t=0; t<10; t++) forest.tick(false); // true will print the map
         size_t resource = forest.count_acres(day18_forest::acre::trees) * forest.count_acres(day18_forest::acre::lumberyard);
-        cout << "Resource value: " << resource << endl;
+        if (verbose) cout << "Resource value: ";
+        cout << resource << endl;
     } else {
         vector<size_t> resource_values;
         size_t resource;
@@ -2513,7 +2514,7 @@ void day18(string inputfile, bool partone, bool verbose) {
         size_t period = 0; // Period candidate, will be accepted if two successive samples show the same period
         for (t=1; t<=t_end; t++) {
             if (forest.tick(false)) { // Check for steady state
-                cout << "Steady state after " << t << " minutes\n";
+                if (verbose) cout << "Steady state after " << t << " minutes\n";
                 break;
             } else { // Check for periodicity
                 resource = forest.count_acres(day18_forest::acre::trees) * forest.count_acres(day18_forest::acre::lumberyard);
@@ -2523,8 +2524,8 @@ void day18(string inputfile, bool partone, bool verbose) {
                     if (period == pos) {
                         period = pos;
                         resource_values.push_back(resource);
-                        cout << "Forest evolution is periodic with p = " << period << endl;
-                        cout << "Stopped at t = " << t << endl;
+                        if (verbose) cout << "Forest evolution is periodic with p = " << period << endl;
+                        if (verbose) cout << "Stopped at t = " << t << endl;
                         break;
                     }
                     period = pos;
@@ -2539,7 +2540,8 @@ void day18(string inputfile, bool partone, bool verbose) {
         // Get resource_value from the end of sequence, at tmod + k*period < t, where k is max
         size_t k = (t-tmod)/period;
         resource = resource_values[tmod+k*period-1];
-        cout << "Resource value at t=" << t_end << " is " << resource << endl;
+        if (verbose) cout << "Resource value at t=" << t_end << " is ";
+        cout << resource << endl;
     }
 }
 
@@ -2674,7 +2676,7 @@ private:
         cout << endl;
     }
 public:
-    time_travel_device_emulator(string inputfile) {
+    time_travel_device_emulator(string inputfile, bool verbose = false) {
         day16_instr i;
         ip = 0;
         for (string& line : get_lines(inputfile)) {
@@ -2693,10 +2695,10 @@ public:
             } else if (p.size()==2) {
                 // IP
                 ip_reg = stoul(p[1]);
-                cout << "Instruction pointer is bound to register " << ip_reg << endl;
+                if (verbose) cout << "Instruction pointer is bound to register " << ip_reg << endl;
             }
         }
-        cout << "Program contains " << program.size() << " instructions\n";
+        if (verbose) cout << "Program contains " << program.size() << " instructions\n";
         // Registers
         regs.resize(6);
         fill(regs.begin(), regs.end(), 0);
@@ -2707,7 +2709,7 @@ public:
         // Reset IP
         ip = 0;
         // Run program
-        cout << "Running program...\n";
+        // cout << "Running program...\n";
         bool running = true;
         size_t t = 0;
         while (running) {
@@ -2851,9 +2853,10 @@ void day19(string inputfile, bool partone, bool verbose) {
     time_travel_device_emulator device(inputfile);
     if (partone) {
         device.run();
-        cout << "Register 0 is " << device.registers()[0] << endl;
-        cout << "Checking with compiled version: " << device.background_proc(0) << endl;
-        cout << "Checking with optimized version: " << device.background_proc_opt(0) << endl;
+        if (verbose) cout << "Register 0 is ";
+        cout << device.registers()[0] << endl;
+        if (verbose) cout << "Checking with compiled version: " << device.background_proc(0) << endl;
+        if (verbose) cout << "Checking with optimized version: " << device.background_proc_opt(0) << endl;
     } else {
         // Interpret program instructions, does not unfold goto-s into while loops
         //device.decompile();
@@ -2861,7 +2864,8 @@ void day19(string inputfile, bool partone, bool verbose) {
         //device.run({1,0,0,0,0,0}, 10000000);
         // Even this is too slow
         //cout << "Trying with compiled version: " << device.background_proc(1) << endl;
-        cout << "Running optimized background process: " << device.background_proc_opt(1) << endl;
+        if (verbose) cout << "Running optimized background process: ";
+        cout << device.background_proc_opt(1) << endl;
     }
 }
 
@@ -2987,7 +2991,7 @@ public:
         }
         return result;
     }
-    day20_map(const string& regex_str, bool print_map = false) : regex(regex_str) {
+    day20_map(const string& regex_str, bool verbose = false) : regex(regex_str) {
         // Count movements
         size_t w = count(regex.begin(), regex.end(), 'W');
         size_t e = count(regex.begin(), regex.end(), 'E');
@@ -2999,7 +3003,7 @@ public:
         xmin = xmax = origin.first;
         ymin = ymax = origin.second;
         // Pre-allocate graph
-        cout << "Allocating map WxH:" << W << "x" << H << endl;
+        if (verbose) cout << "Allocating map WxH:" << W << "x" << H << endl;
         for (size_t y=0; y<H; y++) {
             vector<node> row;
             for (size_t x=0; x<W; x++) {
@@ -3017,7 +3021,7 @@ public:
             regex_ptr = 1;
             build_graph(depth, front, regex_ptr);
         }
-        if (print_map) print(origin);
+        if (verbose) print(origin);
     }
     size_t bfs_count_steps(bool print = false, size_t min_steps = 0) {
         vector<node> front;
@@ -3121,13 +3125,15 @@ bool operator==(const day20_map::node& lhs, const day20_map::node& rhs) {
 
 void day20(string inputfile, bool partone, bool verbose) {
     string regex = get_lines(inputfile)[0];
-    day20_map map(regex);
+    day20_map map(regex, verbose);
     if (partone) {
         size_t steps = map.bfs_count_steps();
-        cout << "Max steps to reach the furthest room (i.e. walk through the whole facility): " << steps << endl;
+        if (verbose) cout << "Max steps to reach the furthest room (i.e. walk through the whole facility): ";
+        cout << steps << endl;
     } else {
         size_t rooms = map.bfs_count_steps(false, 1000);
-        cout << "Rooms with at least 1000 doors away: " << rooms << endl;
+        if (verbose) cout << "Rooms with at least 1000 doors away: ";
+        cout << rooms << endl;
     }
 }
 
@@ -3138,9 +3144,11 @@ void day21(string inputfile, bool partone, bool verbose) {
         // Only for debug mode
         //device.run();
         // Run the activation process with force_quit
-        cout << "Activation halts fastest with r0 = " << device.activation_proc(0, true) << endl; // Passed!
+        if (verbose) cout << "Activation halts fastest with r0 = ";
+        cout << device.activation_proc(0, true) << endl; // Passed!
     } else {
-        cout << "Activation halts slowest with r0 = " << device.activation_proc(0, false) << endl;
+        if (verbose) cout << "Activation halts slowest with r0 = ";
+        cout << device.activation_proc(0, false) << endl;
     }
 }
 
@@ -3305,7 +3313,7 @@ public:
             return 7;
         }
     }
-    size_t rescue_target() {
+    size_t rescue_target(bool verbose = false) {
         // Setup node metadata
         vector<vector<vector<node_meta>>> meta;
         vector<node_meta> row;
@@ -3325,7 +3333,7 @@ public:
         auto compare = [](const node& L, const node& R) { return L.distance > R.distance;};
         priority_queue<node, vector<node>, decltype(compare)> Q(compare);
         node n;
-        cout << "Setting up queue with " << h*w*3 << " elements... ";
+        if (verbose) cout << "Setting up queue with " << h*w*3 << " elements... ";
         for (size_t y=0; y<=h; y++) {
             for (size_t x=0; x<=w; x++) {
                 for (size_t t=0; t<3; t++) {
@@ -3341,7 +3349,7 @@ public:
                 }
             }
         }
-        cout << " Done!\n";
+        if (verbose) cout << " Done!\n";
         // Dijkstra with lazy deletion
         while (!Q.empty()) {
             // Extract and remove node with minimum distance
@@ -3379,15 +3387,17 @@ void day22(string inputfile, bool partone, bool verbose) {
     size_t depth = stoul(split(lines[0],':')[1]);
     vector<string> coords = split(split(lines[1],':')[1],',');
     size_t x = stoul(coords[0]), y = stoul(coords[1]);
-    cout << "Generating cave with depth = " << depth << endl;
-    cout << "Target is at (" << x << "," << y << ")\n";
+    if (verbose) cout << "Generating cave with depth = " << depth << endl;
+    if (verbose) cout << "Target is at (" << x << "," << y << ")\n";
     if (partone) {
         day22_cave cave(depth, x, y, x, y);
-        cout << "Risk level of cave: " << cave.risk_level() << endl;
+        if (verbose) cout << "Risk level of cave: ";
+        cout << cave.risk_level() << endl;
     } else {
         day22_cave cave(depth, x+50, y+50, x, y);
         size_t shortest = cave.rescue_target();
-        cout << "Shortest path to the target (in minutes): " << shortest << endl;
+        if (verbose) cout << "Shortest path to the target (in minutes): ";
+        cout << shortest << endl;
     }
 }
 
@@ -3475,7 +3485,7 @@ bool day23_box_search(const vector<nanobot>& nanobots, nanobot::coord& c0, int r
     return (new_max > current_max);
 }
 
-void day23_find_local_opt(const vector<nanobot>& nanobots, const nanobot::coord c, size_t in_range) {
+void day23_find_local_opt(const vector<nanobot>& nanobots, const nanobot::coord c, size_t in_range, bool verbose = false) {
     bool converged = false;
     size_t radius = 512*1048576;
     nanobot::coord c0=c;
@@ -3490,9 +3500,10 @@ void day23_find_local_opt(const vector<nanobot>& nanobots, const nanobot::coord 
         }
         max_bots = new_max_bots;
     }
-    cout << "Found local opt started from (" << c.x << "," << c.y << "," << c.z << ") finished at (";
-    cout << c0.x << "," << c0.y << "," << c0.z << ") with bots in range: " << new_max_bots << endl;
-    cout << "Manhattan distance is: " << abs(c0.x)+abs(c0.y)+abs(c0.z) << endl;
+    if (verbose) cout << "Found local opt started from (" << c.x << "," << c.y << "," << c.z << ") finished at (";
+    if (verbose) cout << c0.x << "," << c0.y << "," << c0.z << ") with bots in range: " << new_max_bots << endl;
+    if (verbose) cout << "Manhattan distance is: ";
+    cout << abs(c0.x)+abs(c0.y)+abs(c0.z) << endl;
 }
 
 void day23(string inputfile, bool partone, bool verbose) {
@@ -3517,16 +3528,17 @@ void day23(string inputfile, bool partone, bool verbose) {
             nanobots.push_back(nanobot(x,y,z,r));
         }
     }
-    cout << "Found " << nanobots.size() << " nanobots\n";
+    if (verbose) cout << "Found " << nanobots.size() << " nanobots\n";
     if (partone) {
         nanobot strongest = *max_element(nanobots.begin(), nanobots.end(),
         [](const nanobot& l, const nanobot& r){ return l.r < r.r; });
-        cout << "Strongest nanobot has r=" << strongest.r << endl;
+        if (verbose) cout << "Strongest nanobot has r=" << strongest.r << endl;
         size_t in_range = 0;
         for (const nanobot& nb : nanobots) {
             if (strongest.is_in_range(nb)) in_range++;
         }
-        cout << "Nanobots in it's range: " << in_range << endl;
+        if (verbose) cout << "Nanobots in it's range: ";
+        cout << in_range << endl;
     } else {
         vector<pair<size_t, size_t>> rssi_on_bots;
         size_t bots_that_reach_this_coord = 0;
@@ -3541,7 +3553,7 @@ void day23(string inputfile, bool partone, bool verbose) {
                 [](const pair<size_t, size_t>& l, const pair<size_t, size_t>& r) { return l.second > r.second; });
         // Start exploring from the location which is seen from most bots
         for (size_t i=0; i<1; i++) {
-            day23_find_local_opt(nanobots, nanobots[rssi_on_bots[i].first].c, rssi_on_bots[i].second);
+            day23_find_local_opt(nanobots, nanobots[rssi_on_bots[i].first].c, rssi_on_bots[i].second, verbose);
         }
     }
 }
@@ -3764,11 +3776,11 @@ bool day24_fight(vector<cellgroup>& c, size_t& is_units, size_t& inf_units, bool
         cout << "Infection:\n";
         for (const cellgroup& cg : c) { if (cg.infection) {cout << "Group " << cg.group_name() << " has " << cg.units << " units\n";} }
     }
-    if ((is_units == 0 || inf_units == 0)) cout << "Immune system: " << is_units << ", Infection: " << inf_units << endl;
+    if ((is_units == 0 || inf_units == 0)) if (verbose) cout << "Immune system: " << is_units << ", Infection: " << inf_units << endl;
     return (is_units > 0 && inf_units > 0);
 }
 
-size_t day24_battle(vector<cellgroup> c, size_t is_boost = 0, bool verbose = false) {
+pair<size_t, size_t> day24_battle(vector<cellgroup> c, size_t is_boost = 0, bool verbose = false) {
     // Add boost before battle
     for (cellgroup& cg : c) {
         if (!cg.infection) cg.atk += is_boost;
@@ -3778,13 +3790,14 @@ size_t day24_battle(vector<cellgroup> c, size_t is_boost = 0, bool verbose = fal
     while (day24_fight(c, is_units, inf_units, verbose)) {
         // The battle goes on
         if (inf_units == prev_inf_units && is_units == prev_is_units) {
-            cout << "Battle stalled\n";
+            if (verbose) cout << "Battle stalled\n";
             break;
         }
         prev_inf_units = inf_units;
         prev_is_units = is_units;
     }
-    return inf_units;
+
+    return {inf_units, is_units};
 }
 
 void day24(string inputfile, bool partone, bool verbose) {
@@ -3806,15 +3819,18 @@ void day24(string inputfile, bool partone, bool verbose) {
         }
     }
     // Battle
+    pair<size_t, size_t> units;
     if (partone) {
-        day24_battle(cellgroups);
+        units = day24_battle(cellgroups);
+        cout << units.first << endl;
     } else {
         size_t is_boost = 1;
         bool is_won = false;
         while (!is_won) {
-            cout << "Executing battle immune system boost is: " << is_boost << endl;
+            if (verbose) cout << "Executing battle immune system boost is: " << is_boost << endl;
             // Run battle with immune system boost
-            size_t inf_units_left = day24_battle(cellgroups, is_boost);
+            units = day24_battle(cellgroups, is_boost);
+            size_t inf_units_left = units.first;
             // Post-battle stats
             if (inf_units_left > 0) {
                 is_boost += 1 + inf_units_left / 5000;
@@ -3822,7 +3838,8 @@ void day24(string inputfile, bool partone, bool verbose) {
                 is_won = true;
             }
         }
-        cout << "Minimum necessary immune system boost is: " << is_boost << endl;
+        if (verbose) cout << "Minimum necessary immune system boost is: " << is_boost << endl;
+        cout << units.second << endl;
     }
 }
 
@@ -3868,10 +3885,10 @@ void day25(string inputfile, bool partone, bool verbose) {
             minmax(coords.back().z,zmin,zmax); minmax(coords.back().t,tmin,tmax);
         }
     }
-    cout << "Found " << coords.size() << " spacetime coordinates\n";
-    cout << "Spacetime area covered by the coordinates: \n";
-    cout << "X: [" << xmin << ", " << xmax << "]\n";   cout << "Y: [" << ymin << ", " << ymax << "]\n";
-    cout << "Z: [" << zmin << ", " << zmax << "]\n";   cout << "T: [" << tmin << ", " << tmax << "]\n";
+    if (verbose) cout << "Found " << coords.size() << " spacetime coordinates\n";
+    if (verbose) cout << "Spacetime area covered by the coordinates: \n";
+    if (verbose) cout << "X: [" << xmin << ", " << xmax << "]\n";   if (verbose) cout << "Y: [" << ymin << ", " << ymax << "]\n";
+    if (verbose) cout << "Z: [" << zmin << ", " << zmax << "]\n";   if (verbose) cout << "T: [" << tmin << ", " << tmax << "]\n";
     // Start looking up constellations
     bool matching = true;
     size_t current;
@@ -3935,7 +3952,8 @@ void day25(string inputfile, bool partone, bool verbose) {
         }
         if (cnt == 1) lone_constellations++;
     }
-    cout << "Number of constellations (including single-coord ones): " << const_list.size() << endl;
-    cout << "Single-coord constellations: " << lone_constellations << endl;
-    cout << "Number of constellations: " << const_list.size()-lone_constellations << endl;
+    if (verbose) cout << "Number of constellations (including single-coord ones): ";
+    cout << const_list.size() << endl;
+    if (verbose) cout << "Single-coord constellations: " << lone_constellations << endl;
+    if (verbose) cout << "Number of constellations: " << const_list.size()-lone_constellations << endl;
 }
