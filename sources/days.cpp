@@ -335,12 +335,8 @@ void day04(string inputfile, bool partone, bool verbose) {
     }
 }
 
-bool day05_react(char a, char b) {
-    if (a > b) {
-        return (a-b)==32;
-    } else {
-        return (b-a)==32;
-    }
+bool day05_react(const char& a, const char& b) {
+    return (a > b) ? ((a-b)==32) : ((b-a)==32);
 }
 
 size_t day05_react_polymer(string& polymer) {
@@ -349,10 +345,6 @@ size_t day05_react_polymer(string& polymer) {
         // Check chars at p & p+1
         if (day05_react(polymer[p], polymer[p+1])) {
             // Erase the two char's that disappear during the reaction
-            //string left="", right="";
-            //if (p > 0) left=polymer.substr(0, p);
-            //if (p < polymer.size()-2) right=polymer.substr(p+2);
-            //polymer = left + right;
             polymer.erase(p, 2);
             if (p > 0) p--;
         } else {
