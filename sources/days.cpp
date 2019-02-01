@@ -1455,12 +1455,11 @@ void day14_combine(vector<uint8_t>& recipes, size_t& e1, size_t& e2) {
 
 bool day14_check(const vector<uint8_t>& recipes, const vector<uint8_t>& target, size_t at) {
     // Check for target sequence at the given location
-    bool ok = true;
     if (recipes.size() < at+target.size()) return false;
     for (size_t i=at; i<at+target.size(); i++) {
-        ok &= recipes[i] == target[i-at];
+        if (recipes[i] != target[i-at]) return false;
     }
-    return ok;
+    return true;
 }
 
 void day14(string inputfile, bool partone, bool verbose) {
